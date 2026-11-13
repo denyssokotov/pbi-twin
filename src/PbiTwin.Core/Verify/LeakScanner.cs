@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using PbiTwin.Core.Anonymize;
 using PbiTwin.Core.Rename;
 using PbiTwin.Core.Text;
@@ -11,8 +12,14 @@ public sealed record LeakFinding(string File, int Line, string Columns);
 /// Searches every output file for every original value (at least 4 characters) of every anonymized text column.
 /// The result is either "0 leaks found" or a list of file/line/column — never the value itself.
 /// </summary>
-public static class LeakScanner
+public static partial class LeakScanner
 {
+    // GUIDs name the auto date tables, relationships and bookmarks; their segments are digit runs like 4234.
+    [GeneratedRegex("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")]
+    private static partial Regex Guid();
+
+    private const string CellDelimiters = ",;\"\t|'";
+
     private static readonly HashSet<string> TextExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
         ".csv", ".tmdl", ".json", ".pbir", ".pbism", ".pbip", ".platform", ".bim", ".dax", ".m", ".txt", ".xml",
@@ -46,6 +53,9 @@ public static class LeakScanner
 
         var excluded = (excludeFiles ?? []).Select(Path.GetFullPath).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var findings = new List<LeakFinding>();
+        // A hit that is only a piece of a bigger cell may be a pseudonym that happens to contain an original value
+        // (ID-48213 contains the old ID 48213). Those are decided after the scan, against the pseudonyms.
+        var partial = new List<(LeakFinding Finding, string Token)>();
         var files = 0;
 
         foreach (var file in Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
@@ -71,10 +81,57 @@ public static class LeakScanner
 
                 foreach (var m in matcher.Find(line))
                 {
+                    var end = m.Index + m.Pattern.Length;
+                    if (line.Contains('-', StringComparison.Ordinal)
+                        && Guid().Matches(line).Any(g => g.Index <= m.Index && end <= g.Index + g.Length && m.Pattern.Length < g.Length))
+                    {
+                        continue;
+                    }
+
                     var columns = string.Join(", ", lookup[m.Pattern].Keys.SelectMany(d => d.Columns).Select(names.Id).Distinct());
-                    findings.Add(new LeakFinding(rel, lineNo, columns));
+                    var finding = new LeakFinding(rel, lineNo, columns);
+                    var from = m.Index;
+                    while (from > 0 && !CellDelimiters.Contains(line[from - 1], StringComparison.Ordinal))
+                    {
+                        from--;
+                    }
+
+                    var to = end;
+                    while (to < line.Length && !CellDelimiters.Contains(line[to], StringComparison.Ordinal))
+                    {
+                        to++;
+                    }
+
+                    if (to - from > m.Pattern.Length)
+                    {
+                        partial.Add((finding, line[from..to].Trim()));
+                    }
+                    else
+                    {
+                        findings.Add(finding);
+                    }
                 }
             }
+        }
+
+        if (partial.Count > 0)
+        {
+            var tokens = partial.Select(p => p.Token).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var pseudonyms = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var value in knownText.Values.SelectMany(v => v.Values))
+            {
+                if (tokens.Contains(value))
+                {
+                    pseudonyms.Add(value);
+                }
+            }
+
+            // Findings stay in file and line order: they were collected in the same loop.
+            var all = new List<(LeakFinding Finding, bool Keep)>();
+            all.AddRange(findings.Select(f => (f, true)));
+            all.AddRange(partial.Select(p => (p.Finding, !pseudonyms.Contains(p.Token))));
+            findings = all.Where(x => x.Keep).Select(x => x.Finding)
+                .OrderBy(f => f.File, StringComparer.Ordinal).ThenBy(f => f.Line).ToList();
         }
 
         return (findings, matcher.Count, files);

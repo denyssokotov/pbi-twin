@@ -157,6 +157,39 @@ public class RewriterTests
     }
 
     [Fact]
+    public void Leak_scan_ignores_pseudonyms_and_guids_that_merely_contain_an_original_value()
+    {
+        var dir = Directory.CreateTempSubdirectory().FullName;
+        try
+        {
+            // 48213 was an employee ID; ID-48213 is somebody else's pseudonym. 4234 is a segment of a GUID.
+            File.WriteAllText(Path.Combine(dir, "a.csv"), "ID-48213,12\nID-99001,7\n");
+            File.WriteAllText(Path.Combine(dir, "b.tmdl"), "table LocalDateTable_3f66fe14-95ad-4234-a00a-67aad7749326\n");
+            var domain = new Domain("emp", Rule.Key);
+            domain.Columns.Add(new ColumnInfo("Emp", "EmployeeId", ColumnType.Text, "EmployeeId", true, false, null, false));
+            var known = new Dictionary<string, Dictionary<Domain, string>>
+            {
+                ["48213"] = new() { [domain] = "ID-77777" },
+                ["4234"] = new() { [domain] = "ID-48213" },
+                ["99001"] = new() { [domain] = "ID-11111" },
+                ["55555"] = new() { [domain] = "ID-99001" },
+            };
+
+            var (findings, _, _) = LeakScanner.Scan(dir, known);
+
+            Assert.Empty(findings);
+
+            // A real leak in a cell of its own is still reported.
+            File.AppendAllText(Path.Combine(dir, "a.csv"), "99001,5\n");
+            Assert.Single(LeakScanner.Scan(dir, known).Findings);
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Csv_partition_query_reads_from_data_folder()
     {
         var table = new TableInfo("Dim Store", [StoreRegion with { Table = "Dim Store" }, new("Dim Store", "Opened", ColumnType.DateTime, "Opened", false, false, null, true)], false);
