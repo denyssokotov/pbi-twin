@@ -32,10 +32,15 @@ public static partial class LeakScanner
         IReadOnlyDictionary<string, Dictionary<Domain, string>> knownText,
         IEnumerable<string>? excludeFiles = null,
         string? ignoredText = null,
-        INames? names = null)
+        INames? names = null,
+        IEnumerable<string>? ownNames = null)
     {
         names ??= IdentityNames.Instance;
         ArgumentNullException.ThrowIfNull(knownText);
+
+        // Table and column names are kept on purpose; a value that is only a piece of one (a job title "Worker" in
+        // the column "Worker ID") is structure, not data.
+        var nameMatcher = new TextMatcher(ownNames ?? []);
 
         // A value that is its own pseudonym somewhere (rare) cannot be told apart from a leak, so skip it.
         // The literals true, false and null are syntax in every JSON, TMDL and DAX file, not data: a text column holding
@@ -81,9 +86,16 @@ public static partial class LeakScanner
 
                 var matches = matcher.Find(line).ToList();
                 var isData = ext.Equals(".csv", StringComparison.OrdinalIgnoreCase);
+                var nameSpans = matches.Count > 0 && nameMatcher.Count > 0 ? nameMatcher.Find(line).Select(n => (n.Index, End: n.Index + n.Pattern.Length)).ToList() : [];
                 foreach (var m in matches)
                 {
                     var end = m.Index + m.Pattern.Length;
+                    if (nameSpans.Any(n => n.Index <= m.Index && end <= n.End)
+                        || (ext.Equals(".json", StringComparison.OrdinalIgnoreCase) && IsJsonKey(line, m.Index, end)))
+                    {
+                        continue;
+                    }
+
                     if (line.Contains('-', StringComparison.Ordinal)
                         && Guid().Matches(line).Any(g => g.Index <= m.Index && end <= g.Index + g.Length && m.Pattern.Length < g.Length))
                     {
@@ -144,6 +156,23 @@ public static partial class LeakScanner
         }
 
         return (findings, matcher.Count, files);
+    }
+
+    /// <summary>True for <c>"match": ...</c>: a property name of the file format, not a value.</summary>
+    private static bool IsJsonKey(string line, int start, int end)
+    {
+        if (start == 0 || line[start - 1] != '"' || end >= line.Length || line[end] != '"')
+        {
+            return false;
+        }
+
+        var next = end + 1;
+        while (next < line.Length && line[next] == ' ')
+        {
+            next++;
+        }
+
+        return next < line.Length && line[next] == ':';
     }
 
     /// <summary>About 70 characters either side of <paramref name="at"/>, with every match replaced by ‹value›.</summary>

@@ -86,7 +86,8 @@ public static class Verifier
         // 4. Leak scan over every file of the twin.
         // The output path is written into the DataFolder parameter. It is the user's own path, not data, so it is
         // checked separately and reported as a warning.
-        var (leaks, values, files) = LeakScanner.Scan(twin.Root, anonymizer.KnownText, [twin.TrustReportFile], twin.DataFolder, names);
+        var (leaks, values, files) = LeakScanner.Scan(twin.Root, anonymizer.KnownText, [twin.TrustReportFile], twin.DataFolder, names,
+            model.Tables.SelectMany(t => t.Columns.Select(c => names.Column(t.Name, c.Name)).Append(names.Table(t.Name))));
         if (LeakScanner.ColumnsFoundIn(twin.DataFolder, anonymizer.KnownText, names) is { Count: > 0 } pathColumns)
         {
             report.Warnings.Add($"The output path (stored in the DataFolder parameter) contains a word that is also a value of {string.Join(", ", pathColumns)}. If the path is sensitive, choose another output folder or change the parameter before sharing.");

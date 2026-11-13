@@ -153,6 +153,27 @@ public class RewriterTests
     }
 
     [Fact]
+    public void Leak_scan_ignores_json_keys_and_pieces_of_table_and_column_names()
+    {
+        var dir = Directory.CreateTempSubdirectory().FullName;
+        try
+        {
+            File.WriteAllText(Path.Combine(dir, "visual.json"), "{\n  \"Kyiv\": true\n}\n");
+            File.WriteAllText(Path.Combine(dir, "t.tmdl"), "column 'Kyiv ID'\n    sourceColumn: Kyiv ID\n");
+            File.WriteAllText(Path.Combine(dir, "m.tmdl"), "measure x = \"Kyiv\"\n");
+
+            var (findings, _, _) = LeakScanner.Scan(dir, Known(), ownNames: ["Kyiv ID"]);
+
+            // Only the DAX literal is a value.
+            Assert.Equal("m.tmdl", Assert.Single(findings, f => f.Columns == "DimStore[City]").File);
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Leak_scan_ignores_syntax_literals_such_as_true_and_false()
     {
         var dir = Directory.CreateTempSubdirectory().FullName;
