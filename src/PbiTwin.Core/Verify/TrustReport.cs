@@ -114,6 +114,16 @@ public sealed class TrustReport
             }
 
             sb.AppendLine();
+            sb.AppendLine("Summary by file:");
+            sb.AppendLine();
+            sb.AppendLine("| File | Matches | Value from column |");
+            sb.AppendLine("|---|---:|---|");
+            foreach (var g in Leaks.GroupBy(l => (l.File, l.Columns)).OrderByDescending(g => g.Count()).Take(40))
+            {
+                sb.AppendLine(inv, $"| {Escape(g.Key.File)} | {g.Count():N0} | {Escape(g.Key.Columns)} |");
+            }
+
+            sb.AppendLine();
             sb.AppendLine(inv, $"First {Math.Min(200, Leaks.Count)} matches:");
             sb.AppendLine();
             sb.AppendLine("| File | Line | Value from column |");
