@@ -1,0 +1,36 @@
+# .NET build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa]rm64/
+publish/
+artifacts/
+*.user
+*.suo
+*.userprefs
+*.rsuser
+.vs/
+.vscode/
+.idea/
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+coverage*.json
+coverage*.xml
+
+# Power BI local caches and settings (may contain real data)
+*.abf
+**/.pbi/cache.abf
+**/.pbi/localSettings.json
+
+# PbiTwin outputs (never commit generated twins or codebooks)
+out/
+*.codebook.json
+
+# OS
+Thumbs.db
+.DS_Store
