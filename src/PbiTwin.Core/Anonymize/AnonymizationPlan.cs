@@ -85,7 +85,14 @@ public sealed class AnonymizationPlan
         plan.Domain = AddDomain("col:" + columnId, plan.Domain.Rule, plan.Column);
     }
 
-    public static AnonymizationPlan Create(ModelInfo model, IReadOnlyDictionary<string, ColumnProfile> profiles)
+    /// <param name="model">Tables, columns and relationships.</param>
+    /// <param name="profiles">Sample statistics per column id.</param>
+    /// <param name="distinctValues">
+    /// Optional: all distinct values of a column. Used to confirm self-references (e.g. ManagerKey ⊆ EmployeeKey)
+    /// on the full data instead of on sampled examples.
+    /// </param>
+    public static AnonymizationPlan Create(ModelInfo model, IReadOnlyDictionary<string, ColumnProfile> profiles,
+        Func<ColumnInfo, IReadOnlySet<object>>? distinctValues = null)
     {
         ArgumentNullException.ThrowIfNull(model);
         ArgumentNullException.ThrowIfNull(profiles);
@@ -127,7 +134,7 @@ public sealed class AnonymizationPlan
             plan._columns[column.Id] = new ColumnPlan(column, classification, profile) { Domain = domain };
         }
 
-        plan.LinkSelfReferences(model);
+        plan.LinkSelfReferences(model, distinctValues);
         return plan;
     }
 
@@ -147,7 +154,7 @@ public sealed class AnonymizationPlan
     /// A key-like column without a relationship (e.g. DimEmployee[ManagerKey]) whose sampled values all occur
     /// in the unique key column of the same table joins that key's domain, so PATH() and lookups keep working.
     /// </summary>
-    private void LinkSelfReferences(ModelInfo model)
+    private void LinkSelfReferences(ModelInfo model, Func<ColumnInfo, IReadOnlySet<object>>? distinctValues)
     {
         foreach (var table in model.Tables)
         {
@@ -163,8 +170,9 @@ public sealed class AnonymizationPlan
                 }
 
                 var target = keys.FirstOrDefault(k => k != p && k.Column.Type == p.Column.Type
-                    && k.Profile!.Distinct >= p.Profile.Distinct
-                    && p.Profile.Examples.All(k.Profile.Examples.ToHashSet().Contains));
+                    && (distinctValues is null
+                        ? k.Profile!.Distinct >= p.Profile.Distinct && p.Profile.Examples.All(k.Profile.Examples.ToHashSet().Contains)
+                        : distinctValues(p.Column) is { Count: > 0 } values && values.IsSubsetOf(distinctValues(k.Column))));
 
                 if (target is not null)
                 {

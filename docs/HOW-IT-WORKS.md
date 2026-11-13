@@ -17,7 +17,8 @@ from the twin's data. Calculated columns are recalculated too.
 breaks. PbiTwin groups columns that are joined by relationships with a union-find structure; every group
 (a *domain*) shares one mapping. Columns of the same kind share a domain too: all city columns, all
 `Region` columns, all person names. A key-like column without a relationship whose values are a subset of
-the table's own key (e.g. `ManagerKey` → `EmployeeKey`) joins that key's domain, so `PATH()` keeps working.
+the table's own key (e.g. `ManagerKey` → `EmployeeKey`, checked on all distinct values, not just a sample)
+joins that key's domain, so `PATH()` keeps working.
 
 ## 3. Classify columns
 
@@ -62,7 +63,9 @@ and stored in the codebook. DAX is rewritten with a small lexer that knows strin
 and `[brackets]` (with `]]` and `''` escapes): `Table[Column]` and `'Table'[Measure]` are mapped by their table;
 an unqualified `[Name]` is a measure, a column of the table the expression lives in, or the only column with
 that name — except names the expression creates itself (a `"Year"` in `ADDCOLUMNS`, CALENDAR's `[Date]`).
-Report references (`Entity`, `Property`, `queryRef`, filter aliases) follow. Translations, perspectives,
+Report references (`Entity`, `Property`, `queryRef`, filter aliases) follow. Labels in the data use the twin's
+column names too (`Col04 01` instead of `Segment 01`) and text keys become `ID-000123`, so values do not
+reveal the original column names. Translations, perspectives,
 display folders and the diagram layout, which repeat original names, are removed. The same lexer and the
 reversed codebook power *Translate DAX*.
 
@@ -73,7 +76,9 @@ The twin is read back from disk and checked:
 - row counts match the original (or the row limit);
 - every foreign key still finds its key, and one-side keys are still unique;
 - **leak scan**: every distinct original text value with 4+ characters is searched for, case-insensitively
-  and as a whole word, in every file of the twin; the report lists file and line, never the value;
+  and as a whole word, in every file of the twin; the report lists file and line, never the value. Free-text
+  columns are the exception: their whole values are replaced by lorem ipsum and not kept in memory (names,
+  emails and phones inside them are covered by their own columns);
 - every column and measure reference in every DAX expression of the twin points at an object that exists;
 - monthly totals of the largest amount column correlate with the original (≈ 1.0), and the ratio of the two
   largest amount columns (what drives margin %) is unchanged within the noise.

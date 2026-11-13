@@ -55,13 +55,26 @@ public sealed class TwinSession
             }
         }
 
-        return AnonymizationPlan.Create(Model, profiles);
+        // Full distinct values are fetched only for the few self-reference candidates the plan asks about.
+        var distinct = new Dictionary<string, IReadOnlySet<object>>(StringComparer.Ordinal);
+        IReadOnlySet<object> Distinct(ColumnInfo c)
+        {
+            if (!distinct.TryGetValue(c.Id, out var set))
+            {
+                set = _reader.ReadDistinct(c).ToHashSet();
+                distinct[c.Id] = set;
+            }
+
+            return set;
+        }
+
+        return AnonymizationPlan.Create(Model, profiles, Distinct);
     }
 
     /// <summary>Before/after for the first rows of every table, in memory only. Pseudonym numbers may differ from the final run.</summary>
     public IReadOnlyList<PreviewTable> Preview(AnonymizationPlan plan, TwinOptions options)
     {
-        var anonymizer = new Anonymizer(plan, options);
+        var anonymizer = new Anonymizer(plan, options, NeutralLabels(options));
         foreach (var domain in plan.Domains.Where(d => Rules.UsesDictionary(d.Rule)))
         {
             var values = domain.Columns.SelectMany(c => Sample(c)).Where(v => v is not null).Cast<object>();
@@ -91,11 +104,11 @@ public sealed class TwinSession
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(options);
 
-        var anonymizer = new Anonymizer(plan, options);
-        var facts = new RunFacts();
         var database = Project.LoadDatabase();
         var map = options.RenameMode == RenameMode.None ? null : NameMap.Create(database.Model, options.RenameMode);
         INames names = (INames?)map ?? IdentityNames.Instance;
+        var anonymizer = new Anonymizer(plan, options, map is null ? null : d => names.Column(d.Columns[0].Table, d.Columns[0].Name));
+        var facts = new RunFacts();
         var twin = TwinFolder.Create(outputFolder, twinName ?? (map is null ? Project.Name + "_Twin" : "Twin"));
 
         // 1. One-to-one dictionaries from all distinct values (fact tables read only DISTINCT of their keys).
@@ -195,6 +208,18 @@ public sealed class TwinSession
         File.WriteAllText(twin.TrustReportFile, report.ToMarkdown(), Csv.Utf8);
 
         return new TwinResult(twin, report, map is null ? null : twin.CodebookFile);
+    }
+
+    /// <summary>With renamed objects, labels follow the twin's column names (e.g. "Col04 01") instead of the real ones.</summary>
+    private Func<Domain, string>? NeutralLabels(TwinOptions options)
+    {
+        if (options.RenameMode == RenameMode.None)
+        {
+            return null;
+        }
+
+        var map = NameMap.Create(Project.LoadDatabase().Model, options.RenameMode);
+        return d => map.Column(d.Columns[0].Table, d.Columns[0].Name);
     }
 
     /// <summary>Tables in the PBIP that the running model does not have, and vice versa.</summary>

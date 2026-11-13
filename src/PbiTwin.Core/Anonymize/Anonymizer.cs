@@ -15,8 +15,17 @@ public sealed class Anonymizer
     private readonly Dictionary<Domain, Dictionary<object, object>> _dictionaries = [];
     private readonly Dictionary<string, Dictionary<Domain, string>> _knownText = new(StringComparer.Ordinal);
 
-    public Anonymizer(AnonymizationPlan plan, TwinOptions options)
+    private readonly Func<Domain, string>? _neutralLabel;
+
+    /// <param name="plan">Rules per column.</param>
+    /// <param name="options">Seed and numeric settings.</param>
+    /// <param name="neutralLabel">
+    /// When names are obfuscated, labels like "Segment 01" would reveal the column name. This supplies a neutral
+    /// label per domain instead (e.g. the twin's column name), and text keys get the prefix "ID".
+    /// </param>
+    public Anonymizer(AnonymizationPlan plan, TwinOptions options, Func<Domain, string>? neutralLabel = null)
     {
+        _neutralLabel = neutralLabel;
         ArgumentNullException.ThrowIfNull(plan);
         ArgumentNullException.ThrowIfNull(options);
         Plan = plan;
@@ -53,10 +62,9 @@ public sealed class Anonymizer
 
         var map = new Dictionary<object, object>(ordered.Count);
         var width = Math.Max(2, ordered.Count.ToString(CultureInfo.InvariantCulture).Length);
-        var prefix = AnonymizationPlan.Initials(domain.Columns[0].Name);
         for (var i = 0; i < ordered.Count; i++)
         {
-            map[ordered[i].Value] = Pseudonym(domain, ordered[i].Value, i, width, prefix);
+            map[ordered[i].Value] = Pseudonym(domain, ordered[i].Value, i, width);
         }
 
         _dictionaries[domain] = map;
@@ -86,7 +94,9 @@ public sealed class Anonymizer
             _ => value is string s ? FakeText(domain, s) : null,
         };
 
-        if (value is string original && result is string pseudo && Rules.ReplacesText(domain.Rule))
+        // Free text is not remembered: millions of long comments would fill memory, and the names, emails and
+        // phones inside them are already covered by their own columns.
+        if (value is string original && result is string pseudo && Rules.ReplacesText(domain.Rule) && domain.Rule != Rule.FreeText)
         {
             Remember(original, domain, pseudo);
         }
@@ -139,14 +149,16 @@ public sealed class Anonymizer
 
         // A value that was not in the pre-pass (should not happen): extend the dictionary, keeping it one-to-one.
         var width = Math.Max(2, (map.Count + 1).ToString(CultureInfo.InvariantCulture).Length);
-        pseudo = Pseudonym(domain, value, map.Count, width, AnonymizationPlan.Initials(domain.Columns[0].Name));
+        pseudo = Pseudonym(domain, value, map.Count, width);
         map[value] = pseudo;
         return pseudo;
     }
 
-    private static object Pseudonym(Domain domain, object value, int index, int width, string prefix)
+    private object Pseudonym(Domain domain, object value, int index, int width)
     {
         var n = index + 1;
+        var label = _neutralLabel?.Invoke(domain) ?? domain.Label;
+        var prefix = _neutralLabel is null ? AnonymizationPlan.Initials(domain.Columns[0].Name) : "ID";
         var inv = CultureInfo.InvariantCulture;
         return domain.Rule switch
         {
@@ -161,7 +173,7 @@ public sealed class Anonymizer
                 ? FakeData.CityPrefixes[index % FakeData.CityPrefixes.Length] + FakeData.CitySuffixes[index / FakeData.CityPrefixes.Length]
                 : $"City {n.ToString(inv)}",
             Rule.Country => index < FakeData.Countries.Length ? FakeData.Countries[index] : $"Country {n.ToString(inv)}",
-            _ => $"{domain.Label} {n.ToString("D" + width.ToString(inv), inv)}",
+            _ => $"{label} {n.ToString("D" + width.ToString(inv), inv)}",
         };
     }
 
