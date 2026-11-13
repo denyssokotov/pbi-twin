@@ -1,0 +1,6 @@
+# Keep LF line endings on every platform: hashes, TMDL and PBIR stay byte-identical.
+* text=auto eol=lf
+*.sln text eol=crlf
+*.png binary
+*.gif binary
+*.ico binary
