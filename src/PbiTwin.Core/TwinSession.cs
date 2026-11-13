@@ -4,6 +4,7 @@ using PbiTwin.Core.Classify;
 using PbiTwin.Core.Extract;
 using PbiTwin.Core.Metadata;
 using PbiTwin.Core.Output;
+using PbiTwin.Core.Rename;
 using PbiTwin.Core.Text;
 using PbiTwin.Core.Verify;
 
@@ -13,7 +14,8 @@ public sealed record TwinProgress(string Step, string? Table, double Percent);
 
 public sealed record PreviewTable(string Table, IReadOnlyList<ColumnInfo> Columns, IReadOnlyList<object?[]> Before, IReadOnlyList<object?[]> After);
 
-public sealed record TwinResult(TwinFolder Folder, TrustReport Report);
+/// <param name="CodebookFile">Set when names were obfuscated. Keep it private.</param>
+public sealed record TwinResult(TwinFolder Folder, TrustReport Report, string? CodebookFile);
 
 /// <summary>
 /// One anonymization job: <see cref="Scan"/> → (user edits the plan) → <see cref="Preview"/> → <see cref="Run"/>.
@@ -91,7 +93,10 @@ public sealed class TwinSession
 
         var anonymizer = new Anonymizer(plan, options);
         var facts = new RunFacts();
-        var twin = TwinFolder.Create(outputFolder, twinName ?? Project.Name + "_Twin");
+        var database = Project.LoadDatabase();
+        var map = options.RenameMode == RenameMode.None ? null : NameMap.Create(database.Model, options.RenameMode);
+        INames names = (INames?)map ?? IdentityNames.Instance;
+        var twin = TwinFolder.Create(outputFolder, twinName ?? (map is null ? Project.Name + "_Twin" : "Twin"));
 
         // 1. One-to-one dictionaries from all distinct values (fact tables read only DISTINCT of their keys).
         progress?.Report(new TwinProgress("Building key mappings", null, 0));
@@ -132,7 +137,8 @@ public sealed class TwinSession
             facts.Metrics.Begin(t, plan, anonymizer.Parameters.DateShiftDays);
 
             long written = 0;
-            using (var writer = new CsvWriter(Path.Combine(twin.DataFolder, ModelRewriter.CsvFileName(t.Name)), t.Columns))
+            var twinTable = ModelRewriter.Renamed(t, names);
+            using (var writer = new CsvWriter(Path.Combine(twin.DataFolder, ModelRewriter.CsvFileName(twinTable.Name)), twinTable.Columns))
             {
                 foreach (var row in _reader.ReadRows(t, t.Columns, limit))
                 {
@@ -160,19 +166,35 @@ public sealed class TwinSession
 
         // 3. Copy the project, point it at the CSVs, strip sources, rewrite literals.
         progress?.Report(new TwinProgress("Writing project", null, 100));
-        var literals = new LiteralRewriter(anonymizer.KnownText);
+        var literals = new LiteralRewriter(anonymizer.KnownText, names);
         twin.CopyProject(Project);
-        var database = Project.LoadDatabase();
-        ModelRewriter.Rewrite(database.Model, Model, twin.DataFolder, literals, options.ClearDescriptions);
+        ModelRewriter.Rewrite(database.Model, Model, twin.DataFolder, literals, options.ClearDescriptions || map is not null, names);
+        if (map is not null)
+        {
+            ModelRenamer.Apply(database.Model, map);
+            twin.RemoveDiagramLayout();
+        }
+
         twin.WriteModel(database, Project.IsTmdl);
         ReportRewriter.Rewrite(twin.ReportFolder, literals, anonymizer.Parameters.DateShiftDays);
+        if (map is not null)
+        {
+            ReportRenamer.Rewrite(twin.ReportFolder, map);
+            File.WriteAllText(twin.CodebookFile, map.ToJson(), Csv.Utf8);
+        }
 
         // 4. Verify by reading the twin back from disk.
         progress?.Report(new TwinProgress("Verifying", null, 100));
-        var report = Verifier.Verify(twin, Model, anonymizer, facts, literals);
+        var report = Verifier.Verify(twin, Model, anonymizer, facts, literals, names);
+        report.Checks.Add(DaxReferenceCheck.Run(database.Model));
+        if (map is not null)
+        {
+            report.Warnings.Add($"Names were obfuscated. The codebook ({Path.GetFileName(twin.CodebookFile)}) was saved next to the twin folder, not inside it. Never share it together with the twin.");
+        }
+
         File.WriteAllText(twin.TrustReportFile, report.ToMarkdown(), Csv.Utf8);
 
-        return new TwinResult(twin, report);
+        return new TwinResult(twin, report, map is null ? null : twin.CodebookFile);
     }
 
     /// <summary>Tables in the PBIP that the running model does not have, and vice versa.</summary>

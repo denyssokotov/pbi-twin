@@ -1,0 +1,41 @@
+<Window x:Class="PbiTwin.App.Views.TranslateWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Translate DAX — PbiTwin" Height="640" Width="900" MinHeight="420" MinWidth="640"
+        Background="White" FontFamily="Segoe UI" FontSize="13" Foreground="{StaticResource Ink}" WindowStartupLocation="CenterOwner">
+    <DockPanel Margin="24,20">
+        <StackPanel DockPanel.Dock="Top">
+            <TextBlock Style="{StaticResource H1}" Text="Translate DAX" />
+            <TextBlock Style="{StaticResource Lead}"
+                       Text="Paste DAX that an AI (or a colleague) wrote against the twin's names, and get the same DAX for your real model — or the other way round. Only names are translated; nothing leaves this window." />
+            <DockPanel Margin="0,0,0,12">
+                <Button DockPanel.Dock="Right" Content="Load codebook…" Command="{Binding LoadCommand}" Margin="8,0,0,0" />
+                <TextBox Text="{Binding CodebookPath, Mode=OneWay}" IsReadOnly="True" />
+            </DockPanel>
+        </StackPanel>
+        <Border DockPanel.Dock="Bottom" Background="{StaticResource Surface}" CornerRadius="6" Padding="10,8" Margin="0,12,0,0">
+            <TextBlock Text="{Binding Status}" TextWrapping="Wrap" Foreground="{StaticResource Muted}" />
+        </Border>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top" Style="{StaticResource Label}" Text="Input" Margin="0,0,0,4" />
+                <TextBox Text="{Binding Input, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" AcceptsTab="True"
+                         FontFamily="Consolas" TextWrapping="NoWrap" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" />
+            </DockPanel>
+            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="12,0">
+                <Button Style="{StaticResource Primary}" Content="Twin → Real  ▶" Command="{Binding ToRealCommand}" Margin="0,0,0,8" />
+                <Button Content="Real → Twin  ▶" Command="{Binding ToAnonymousCommand}" />
+            </StackPanel>
+            <DockPanel Grid.Column="2">
+                <TextBlock DockPanel.Dock="Top" Style="{StaticResource Label}" Text="Output" Margin="0,0,0,4" />
+                <TextBox Text="{Binding Output, Mode=OneWay}" IsReadOnly="True" FontFamily="Consolas" TextWrapping="NoWrap"
+                         HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="{StaticResource Surface}" />
+            </DockPanel>
+        </Grid>
+    </DockPanel>
+</Window>

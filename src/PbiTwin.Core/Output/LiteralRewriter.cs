@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using PbiTwin.Core.Anonymize;
+using PbiTwin.Core.Rename;
 using PbiTwin.Core.Text;
 
 namespace PbiTwin.Core.Output;
@@ -14,11 +15,13 @@ public sealed partial class LiteralRewriter
     private readonly IReadOnlyDictionary<string, Dictionary<Domain, string>> _known;
     private readonly Dictionary<string, Dictionary<Domain, string>> _knownIgnoreCase;
     private readonly TextMatcher _matcher;
+    private readonly INames _names;
 
-    public LiteralRewriter(IReadOnlyDictionary<string, Dictionary<Domain, string>> knownText)
+    public LiteralRewriter(IReadOnlyDictionary<string, Dictionary<Domain, string>> knownText, INames? names = null)
     {
         ArgumentNullException.ThrowIfNull(knownText);
         _known = knownText;
+        _names = names ?? IdentityNames.Instance;
         _knownIgnoreCase = new(StringComparer.OrdinalIgnoreCase);
         foreach (var (k, v) in knownText)
         {
@@ -154,7 +157,7 @@ public sealed partial class LiteralRewriter
             if (match is null)
             {
                 match = byDomain.OrderBy(kv => kv.Key.Id, StringComparer.Ordinal).First().Value;
-                Warn($"{location}: a literal matches values of several columns ({string.Join(", ", byDomain.Keys.SelectMany(d => d.Columns).Select(c => c.Id))}); the first mapping was used.");
+                Warn($"{location}: a literal matches values of several columns ({string.Join(", ", byDomain.Keys.SelectMany(d => d.Columns).Select(_names.Id))}); the first mapping was used.");
             }
 
             pseudonym = match;

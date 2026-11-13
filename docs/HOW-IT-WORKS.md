@@ -55,7 +55,18 @@ parameter, data source and query group is deleted. String literals in DAX and in
 an original value are replaced by that value's pseudonym — using the column next to the literal to pick
 the right mapping — and original values inside free text (titles, textboxes) are replaced word by word.
 
-## 7. Verify
+## 7. Rename (optional)
+
+With renaming on, every table, column, measure, hierarchy, level and role gets a neutral name, decided once
+and stored in the codebook. DAX is rewritten with a small lexer that knows strings, comments, `'quoted tables'`
+and `[brackets]` (with `]]` and `''` escapes): `Table[Column]` and `'Table'[Measure]` are mapped by their table;
+an unqualified `[Name]` is a measure, a column of the table the expression lives in, or the only column with
+that name — except names the expression creates itself (a `"Year"` in `ADDCOLUMNS`, CALENDAR's `[Date]`).
+Report references (`Entity`, `Property`, `queryRef`, filter aliases) follow. Translations, perspectives,
+display folders and the diagram layout, which repeat original names, are removed. The same lexer and the
+reversed codebook power *Translate DAX*.
+
+## 8. Verify
 
 The twin is read back from disk and checked:
 
@@ -63,6 +74,7 @@ The twin is read back from disk and checked:
 - every foreign key still finds its key, and one-side keys are still unique;
 - **leak scan**: every distinct original text value with 4+ characters is searched for, case-insensitively
   and as a whole word, in every file of the twin; the report lists file and line, never the value;
+- every column and measure reference in every DAX expression of the twin points at an object that exists;
 - monthly totals of the largest amount column correlate with the original (≈ 1.0), and the ratio of the two
   largest amount columns (what drives margin %) is unchanged within the noise.
 

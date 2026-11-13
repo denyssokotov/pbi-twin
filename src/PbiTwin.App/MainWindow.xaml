@@ -47,6 +47,8 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
+                <Button Content="Translate DAX…" Command="{Binding TranslateCommand}" Margin="0,24,0,0" HorizontalAlignment="Stretch"
+                        ToolTip="Translate DAX between the twin's names and the real ones (needs the codebook)" />
             </StackPanel>
         </Border>
 

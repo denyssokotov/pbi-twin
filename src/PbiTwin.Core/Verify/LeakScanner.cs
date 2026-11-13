@@ -1,4 +1,5 @@
 using PbiTwin.Core.Anonymize;
+using PbiTwin.Core.Rename;
 using PbiTwin.Core.Text;
 
 namespace PbiTwin.Core.Verify;
@@ -21,8 +22,10 @@ public static class LeakScanner
         string folder,
         IReadOnlyDictionary<string, Dictionary<Domain, string>> knownText,
         IEnumerable<string>? excludeFiles = null,
-        string? ignoredText = null)
+        string? ignoredText = null,
+        INames? names = null)
     {
+        names ??= IdentityNames.Instance;
         ArgumentNullException.ThrowIfNull(knownText);
 
         // A value that is its own pseudonym somewhere (rare) cannot be told apart from a leak, so skip it.
@@ -61,7 +64,7 @@ public static class LeakScanner
 
                 foreach (var m in matcher.Find(line))
                 {
-                    var columns = string.Join(", ", lookup[m.Pattern].Keys.SelectMany(d => d.Columns).Select(c => c.Id).Distinct());
+                    var columns = string.Join(", ", lookup[m.Pattern].Keys.SelectMany(d => d.Columns).Select(names.Id).Distinct());
                     findings.Add(new LeakFinding(rel, lineNo, columns));
                 }
             }
@@ -71,8 +74,9 @@ public static class LeakScanner
     }
 
     /// <summary>Columns whose original values occur in <paramref name="text"/> (e.g. the output path).</summary>
-    public static IReadOnlyList<string> ColumnsFoundIn(string text, IReadOnlyDictionary<string, Dictionary<Domain, string>> knownText)
+    public static IReadOnlyList<string> ColumnsFoundIn(string text, IReadOnlyDictionary<string, Dictionary<Domain, string>> knownText, INames? names = null)
     {
+        names ??= IdentityNames.Instance;
         ArgumentNullException.ThrowIfNull(knownText);
         var lookup = new Dictionary<string, Dictionary<Domain, string>>(StringComparer.OrdinalIgnoreCase);
         foreach (var (k, v) in knownText)
@@ -81,7 +85,7 @@ public static class LeakScanner
         }
 
         return new TextMatcher(knownText.Keys).Find(text)
-            .SelectMany(m => lookup[m.Pattern].Keys.SelectMany(d => d.Columns).Select(c => c.Id))
+            .SelectMany(m => lookup[m.Pattern].Keys.SelectMany(d => d.Columns).Select(names.Id))
             .Distinct()
             .ToList();
     }

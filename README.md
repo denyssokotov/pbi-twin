@@ -42,6 +42,17 @@ in measures, calculated columns, calculation items, RLS filters, report filters,
 `CALCULATE([Revenue], DimCustomer[Segment] = "Enterprise")` still works in the twin. Original data
 sources, server names and parameters are removed; descriptions and annotations are cleaned by default.
 
+### Hide the names too
+
+Optionally, tables, columns, measures, hierarchies and roles are renamed — neutrally (`Table01[Col03]`,
+`[Measure07]`) or semantically (`FactA`, `DimB`) — and every DAX expression and report reference is rewritten
+to match. A **codebook** (names only, no data) is saved *next to* the twin folder. Ask an AI to write a measure
+against the twin, paste it into **Translate DAX**, and get the same measure for your real model:
+
+```
+CALCULATE([Measure01], DimC[Col04] = "Region 02")   →   CALCULATE([Revenue], DimStore[Region] = "Region 02")
+```
+
 ## How it stays private
 
 - Reads data only from Power BI Desktop on `localhost`; any other connection string is refused.
@@ -58,7 +69,8 @@ and [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md) for the algorithms.
 - The twin's data is CSV in Import mode; DirectQuery behaviour and performance are not reproduced.
 - Classification is heuristic. Always review the Scan step.
 - Hard-coded numbers in DAX (e.g. `[Revenue] > 1000000`) and hard-coded dates are not rewritten; date literals are flagged in the trust report.
-- Table, column and measure **names** are not obfuscated yet (planned). A value used as a name (e.g. a measure called *Kyiv Revenue*) is reported as a leak.
+- Names are kept unless you turn on renaming. Without it, a value used as a name (e.g. a measure called *Kyiv Revenue*) is reported as a leak.
+- When renaming, names that DAX creates itself (e.g. `"Year"` in `ADDCOLUMNS` inside a calculated table) stay as they are. Calculation item names and field-parameter labels are not renamed.
 - Images in the report (logos, `RegisteredResources`) are copied as-is.
 - This is not anonymization in the legal sense (e.g. GDPR). It is a tool for safe development, demos and sharing with AI assistants.
 

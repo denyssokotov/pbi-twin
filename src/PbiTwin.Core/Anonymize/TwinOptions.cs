@@ -1,3 +1,5 @@
+using PbiTwin.Core.Rename;
+
 namespace PbiTwin.Core.Anonymize;
 
 /// <summary>User-adjustable settings for one run.</summary>
@@ -20,8 +22,11 @@ public sealed record TwinOptions
     /// <summary>Maximum rows per fact table; dimension tables are always copied in full.</summary>
     public long? FactRowLimit { get; init; }
 
-    /// <summary>Remove descriptions and non-functional annotations from the model.</summary>
+    /// <summary>Remove descriptions and non-functional annotations from the model (always on when renaming).</summary>
     public bool ClearDescriptions { get; init; } = true;
+
+    /// <summary>Rename tables, columns, measures, hierarchies and roles; a codebook is saved next to the twin.</summary>
+    public RenameMode RenameMode { get; init; } = RenameMode.None;
 }
 
 /// <summary>Numbers derived from the seed. Kept in memory only — never shown in reports.</summary>

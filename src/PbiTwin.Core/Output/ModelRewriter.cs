@@ -2,6 +2,7 @@ using System.Text;
 using System.Globalization;
 using Microsoft.AnalysisServices.Tabular;
 using PbiTwin.Core.Metadata;
+using PbiTwin.Core.Rename;
 using ColumnType = PbiTwin.Core.Metadata.ColumnType;
 
 namespace PbiTwin.Core.Output;
@@ -28,11 +29,12 @@ public static class ModelRewriter
         "__PBI_SemanticLinkEnabled",
     };
 
-    public static void Rewrite(Model model, ModelInfo info, string dataFolder, LiteralRewriter literals, bool clearDescriptions)
+    public static void Rewrite(Model model, ModelInfo info, string dataFolder, LiteralRewriter literals, bool clearDescriptions, INames names)
     {
         ArgumentNullException.ThrowIfNull(model);
         ArgumentNullException.ThrowIfNull(info);
         ArgumentNullException.ThrowIfNull(literals);
+        ArgumentNullException.ThrowIfNull(names);
 
         model.DefaultMode = ModeType.Import;
 
@@ -45,12 +47,13 @@ public static class ModelRewriter
             {
                 Name = t.Name,
                 Mode = ModeType.Import,
-                Source = new MPartitionSource { Expression = CsvQuery(t) },
+                Source = new MPartitionSource { Expression = CsvQuery(Renamed(t, names)) },
             });
 
+            // The CSV header carries the twin's column name.
             foreach (var c in table.Columns.OfType<DataColumn>())
             {
-                c.SourceColumn = c.Name;
+                c.SourceColumn = names.Column(t.Name, c.Name);
             }
         }
 
@@ -70,10 +73,10 @@ public static class ModelRewriter
         var queryOrder = model.Annotations.Find("PBI_QueryOrder");
         if (queryOrder is not null)
         {
-            queryOrder.Value = System.Text.Json.JsonSerializer.Serialize(new[] { DataFolderParameter }.Concat(info.Tables.Select(t => t.Name)));
+            queryOrder.Value = System.Text.Json.JsonSerializer.Serialize(new[] { DataFolderParameter }.Concat(info.Tables.Select(t => names.Table(t.Name))));
         }
 
-        RewriteDax(model, literals);
+        DaxSites.ForEach(model, names, (dax, site) => literals.RewriteDax(dax, site.Location));
 
         if (clearDescriptions)
         {
@@ -86,6 +89,15 @@ public static class ModelRewriter
                 o.Description = literals.RewriteText(o.Description, "Description of " + o.Name);
             }
         }
+    }
+
+    /// <summary>The table as it appears in the twin (names mapped).</summary>
+    public static TableInfo Renamed(TableInfo table, INames names)
+    {
+        ArgumentNullException.ThrowIfNull(table);
+        ArgumentNullException.ThrowIfNull(names);
+        var name = names.Table(table.Name);
+        return table with { Name = name, Columns = table.Columns.Select(c => c with { Table = name, Name = names.Column(table.Name, c.Name) }).ToList() };
     }
 
     /// <summary>Power Query that reads one twin CSV with explicit types and invariant culture.</summary>
@@ -124,74 +136,6 @@ public static class ModelRewriter
     };
 
     private static string MString(string s) => "\"" + s.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"";
-
-    private static void RewriteDax(Model model, LiteralRewriter lit)
-    {
-        foreach (var table in model.Tables)
-        {
-            var tn = $"'{table.Name}'";
-            foreach (var m in table.Measures)
-            {
-                var where = $"Measure {tn}[{m.Name}]";
-                m.Expression = lit.RewriteDax(m.Expression, where);
-                if (m.FormatStringDefinition is not null)
-                {
-                    m.FormatStringDefinition.Expression = lit.RewriteDax(m.FormatStringDefinition.Expression, where + " format string");
-                }
-
-                if (m.DetailRowsDefinition is not null)
-                {
-                    m.DetailRowsDefinition.Expression = lit.RewriteDax(m.DetailRowsDefinition.Expression, where + " detail rows");
-                }
-
-                if (m.KPI is not null)
-                {
-                    m.KPI.TargetExpression = lit.RewriteDax(m.KPI.TargetExpression, where + " KPI target");
-                    m.KPI.StatusExpression = lit.RewriteDax(m.KPI.StatusExpression, where + " KPI status");
-                    m.KPI.TrendExpression = lit.RewriteDax(m.KPI.TrendExpression, where + " KPI trend");
-                }
-            }
-
-            foreach (var c in table.Columns.OfType<CalculatedColumn>())
-            {
-                c.Expression = lit.RewriteDax(c.Expression, $"Calculated column {tn}[{c.Name}]");
-            }
-
-            foreach (var p in table.Partitions)
-            {
-                if (p.Source is CalculatedPartitionSource cps)
-                {
-                    cps.Expression = lit.RewriteDax(cps.Expression, $"Calculated table {tn}");
-                }
-            }
-
-            if (table.CalculationGroup is not null)
-            {
-                foreach (var item in table.CalculationGroup.CalculationItems)
-                {
-                    var where = $"Calculation item {tn}[{item.Name}]";
-                    item.Expression = lit.RewriteDax(item.Expression, where);
-                    if (item.FormatStringDefinition is not null)
-                    {
-                        item.FormatStringDefinition.Expression = lit.RewriteDax(item.FormatStringDefinition.Expression, where + " format string");
-                    }
-                }
-            }
-
-            if (table.DefaultDetailRowsDefinition is not null)
-            {
-                table.DefaultDetailRowsDefinition.Expression = lit.RewriteDax(table.DefaultDetailRowsDefinition.Expression, $"Detail rows {tn}");
-            }
-        }
-
-        foreach (var role in model.Roles)
-        {
-            foreach (var tp in role.TablePermissions)
-            {
-                tp.FilterExpression = lit.RewriteDax(tp.FilterExpression, $"Role '{role.Name}' filter on '{tp.Name}'");
-            }
-        }
-    }
 
     private static void Clean(Model model)
     {

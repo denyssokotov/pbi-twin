@@ -36,6 +36,19 @@ public sealed class TwinFolder
 
     public string TrustReportFile => Path.Combine(Root, "TRUST-REPORT.md");
 
+    /// <summary>Stored next to (not inside) the twin folder, so it is not shared by accident.</summary>
+    public string CodebookFile => Path.Combine(Path.GetDirectoryName(Root)!, Name + ".codebook.json");
+
+    /// <summary>The diagram layout lists table names; Power BI recreates it.</summary>
+    public void RemoveDiagramLayout()
+    {
+        var layout = Path.Combine(SemanticModelFolder, "diagramLayout.json");
+        if (File.Exists(layout))
+        {
+            File.Delete(layout);
+        }
+    }
+
     /// <summary>
     /// Creates (or recreates) <paramref name="root"/>. An existing folder is only replaced if PbiTwin created it.
     /// </summary>

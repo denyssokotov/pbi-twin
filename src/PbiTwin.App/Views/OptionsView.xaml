@@ -34,6 +34,11 @@
 
             <CheckBox Content="Remove descriptions and annotations from the model" IsChecked="{Binding ClearDescriptions}" Margin="0,16,0,0" />
 
+            <TextBlock Style="{StaticResource Label}" Text="Rename tables, columns and measures" />
+            <ComboBox ItemsSource="{Binding RenameModes}" SelectedItem="{Binding RenameMode}" Width="200" HorizontalAlignment="Left" />
+            <TextBlock Style="{StaticResource Hint}"
+                       Text="None keeps the names. Neutral: Table01, Table01[Col03], [Measure07]. Semantic: FactA, DimB. All DAX and the report are rewritten. A codebook (names only) is saved next to the twin folder so you can translate DAX back — never share it with the twin." />
+
             <TextBlock Style="{StaticResource Label}" Text="Twin name" />
             <TextBox Text="{Binding TwinName, UpdateSourceTrigger=PropertyChanged}" />
 

@@ -51,9 +51,12 @@ Get-ChildItem -Recurse -File | Select-String -Pattern "Kovalenko","ukr.net","Kyi
 
 - [ ] Nothing found. (Pick a few more names/emails from `DimCustomer.csv` of the original.)
 
-## 6. (Stage 5, not built yet) Translate DAX
+## 6. Renamed twin and Translate DAX
 
-- [ ] Ask an AI to write a measure using the twin's names → *Translate DAX* → paste into the original → it works.
+- [ ] Run the wizard again with *Rename: Semantic*. The twin folder is called `Twin`; `Twin.codebook.json` lies next to it (not inside).
+- [ ] Open the twin: tables are `FactA`, `DimA`…, columns `Col01`…, measures `Measure01`…; all visuals, RLS and `Margin %` still work.
+- [ ] Trust report: *DAX references* is green; no original table/column/measure name appears in it.
+- [ ] Give an AI the twin's model (e.g. the TMDL) and ask for a new measure. Paste it into *Translate DAX… → Twin → Real*, add it to the original report — it works.
 
 ## 7. Offline proof (optional)
 

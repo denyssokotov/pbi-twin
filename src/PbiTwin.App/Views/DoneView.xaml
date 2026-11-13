@@ -46,6 +46,15 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
+            <Border Background="#FFFAEB" BorderBrush="#FEDF89" BorderThickness="1" CornerRadius="6" Padding="12,10" Margin="0,12,0,0"
+                    Visibility="{Binding HasCodebook, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel>
+                    <TextBlock Text="Codebook saved — keep it private" FontWeight="SemiBold" Foreground="{StaticResource Warn}" />
+                    <TextBlock Text="{Binding CodebookPath}" Style="{StaticResource Hint}" />
+                    <TextBlock Style="{StaticResource Hint}" Text="It maps the twin's names back to the real ones. Share the twin folder only, never this file. Use Translate DAX… to bring AI-written measures back to your real model." />
+                </StackPanel>
+            </Border>
+
             <ItemsControl ItemsSource="{Binding Warnings}" Margin="0,12,0,0">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>

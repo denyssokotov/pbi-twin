@@ -10,6 +10,7 @@ using PbiTwin.Core.Anonymize;
 using PbiTwin.Core.Connection;
 using PbiTwin.Core.Extract;
 using PbiTwin.Core.Metadata;
+using PbiTwin.Core.Rename;
 using PbiTwin.Core.Verify;
 using Rule = PbiTwin.Core.Anonymize.Rule;
 
@@ -44,6 +45,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     private bool _clearDescriptions = true;
     private string _outputFolder = string.Empty;
     private string _twinName = string.Empty;
+    private RenameMode _renameMode = RenameMode.None;
 
     private IReadOnlyList<PreviewTable> _preview = [];
     private string? _selectedPreviewTable;
@@ -80,6 +82,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         OpenTwinCommand = new RelayCommand(() => OpenFile(_result!.Folder.PbipFile), () => _result is not null);
         OpenReportCommand = new RelayCommand(() => OpenFile(_result!.Folder.TrustReportFile), () => _result is not null);
         StartOverCommand = new RelayCommand(() => GoTo(WizardStep.Options), () => Current == WizardStep.Done);
+        TranslateCommand = new RelayCommand(() => OpenTranslator?.Invoke(_result?.CodebookFile));
     }
 
     public IReadOnlyList<StepItem> Steps { get; }
@@ -105,6 +108,11 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     public RelayCommand OpenReportCommand { get; }
 
     public RelayCommand StartOverCommand { get; }
+
+    public RelayCommand TranslateCommand { get; }
+
+    /// <summary>Set by the window: opens the Translate DAX tool, optionally with a codebook.</summary>
+    public Action<string?>? OpenTranslator { get; set; }
 
     public WizardStep Current
     {
@@ -237,6 +245,22 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         set => Set(ref _outputFolder, value);
     }
 
+    public IReadOnlyList<RenameMode> RenameModes { get; } = [RenameMode.None, RenameMode.Neutral, RenameMode.Semantic];
+
+    public RenameMode RenameMode
+    {
+        get => _renameMode;
+        set
+        {
+            if (Set(ref _renameMode, value) && value != RenameMode.None && _session is not null && TwinName == _session.Project.Name + "_Twin")
+            {
+                // The project name may itself be sensitive.
+                TwinName = "Twin";
+                OutputFolder = Path.Combine(Path.GetDirectoryName(OutputFolder) ?? OutputFolder, TwinName);
+            }
+        }
+    }
+
     public string TwinName
     {
         get => _twinName;
@@ -298,6 +322,10 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     public bool ResultPassed => _result?.Report.Passed ?? false;
 
     public string? OutputPath => _result?.Folder.Root;
+
+    public string? CodebookPath => _result?.CodebookFile;
+
+    public bool HasCodebook => _result?.CodebookFile is not null;
 
     // ---------- Navigation ----------
     public async Task InitializeAsync() => await RefreshInstancesAsync();
@@ -506,6 +534,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
             DateShiftDays = shift,
             FactRowLimit = limit,
             ClearDescriptions = ClearDescriptions,
+            RenameMode = RenameMode,
         };
     }
 
@@ -560,6 +589,8 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
             Raise(nameof(ResultHeadline));
             Raise(nameof(ResultPassed));
             Raise(nameof(OutputPath));
+            Raise(nameof(CodebookPath));
+            Raise(nameof(HasCodebook));
             GoTo(WizardStep.Done);
         }
         catch (OperationCanceledException)

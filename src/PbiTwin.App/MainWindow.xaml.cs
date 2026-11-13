@@ -10,6 +10,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         var vm = new MainViewModel();
         DataContext = vm;
+        vm.OpenTranslator = codebook => new Views.TranslateWindow(codebook) { Owner = this }.Show();
         Loaded += async (_, _) => await vm.InitializeAsync();
         Closed += (_, _) => vm.Dispose();
     }
