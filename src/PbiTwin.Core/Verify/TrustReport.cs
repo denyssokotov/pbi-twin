@@ -104,6 +104,18 @@ public sealed class TrustReport
         {
             sb.AppendLine(inv, $"**{Leaks.Count:N0} leaks found** (values are not shown):");
             sb.AppendLine();
+            sb.AppendLine("Summary by column (start here):");
+            sb.AppendLine();
+            sb.AppendLine("| Value from column | Matches | Files |");
+            sb.AppendLine("|---|---:|---:|");
+            foreach (var g in Leaks.GroupBy(l => l.Columns, StringComparer.Ordinal).OrderByDescending(g => g.Count()).Take(50))
+            {
+                sb.AppendLine(inv, $"| {Escape(g.Key)} | {g.Count():N0} | {g.Select(l => l.File).Distinct(StringComparer.Ordinal).Count():N0} |");
+            }
+
+            sb.AppendLine();
+            sb.AppendLine(inv, $"First {Math.Min(200, Leaks.Count)} matches:");
+            sb.AppendLine();
             sb.AppendLine("| File | Line | Value from column |");
             sb.AppendLine("|---|---:|---|");
             foreach (var l in Leaks.Take(200))

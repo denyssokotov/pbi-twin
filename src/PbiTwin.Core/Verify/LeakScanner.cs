@@ -18,6 +18,8 @@ public static class LeakScanner
         ".csv", ".tmdl", ".json", ".pbir", ".pbism", ".pbip", ".platform", ".bim", ".dax", ".m", ".txt", ".xml",
     };
 
+    private static readonly HashSet<string> Syntax = new(["true", "false", "null", "none", "blank"], StringComparer.OrdinalIgnoreCase);
+
     public static (List<LeakFinding> Findings, int ValuesChecked, int FilesScanned) Scan(
         string folder,
         IReadOnlyDictionary<string, Dictionary<Domain, string>> knownText,
@@ -29,7 +31,12 @@ public static class LeakScanner
         ArgumentNullException.ThrowIfNull(knownText);
 
         // A value that is its own pseudonym somewhere (rare) cannot be told apart from a leak, so skip it.
-        var originals = knownText.Where(kv => !kv.Value.Values.Contains(kv.Key, StringComparer.OrdinalIgnoreCase)).Select(kv => kv.Key).ToList();
+        // The literals true, false and null are syntax in every JSON, TMDL and DAX file, not data: a text column holding
+        // "True"/"False" would otherwise "leak" into every theme and visual.
+        var originals = knownText
+            .Where(kv => !kv.Value.Values.Contains(kv.Key, StringComparer.OrdinalIgnoreCase) && !Syntax.Contains(kv.Key))
+            .Select(kv => kv.Key)
+            .ToList();
         var matcher = new TextMatcher(originals);
         var lookup = new Dictionary<string, Dictionary<Domain, string>>(StringComparer.OrdinalIgnoreCase);
         foreach (var (k, v) in knownText)

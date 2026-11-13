@@ -132,6 +132,31 @@ public class RewriterTests
     }
 
     [Fact]
+    public void Leak_scan_ignores_syntax_literals_such_as_true_and_false()
+    {
+        var dir = Directory.CreateTempSubdirectory().FullName;
+        try
+        {
+            File.WriteAllText(Path.Combine(dir, "theme.json"), "{ \"bold\": true, \"italic\": false, \"x\": null }\n");
+            var domain = new Domain("flag", Rule.Label);
+            domain.Columns.Add(new ColumnInfo("Goals", "IsMD", ColumnType.Text, "IsMD", false, false, null, false));
+            var known = new Dictionary<string, Dictionary<Domain, string>>
+            {
+                ["True"] = new() { [domain] = "Flag 01" },
+                ["False"] = new() { [domain] = "Flag 02" },
+            };
+
+            var (findings, _, _) = LeakScanner.Scan(dir, known);
+
+            Assert.Empty(findings);
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Csv_partition_query_reads_from_data_folder()
     {
         var table = new TableInfo("Dim Store", [StoreRegion with { Table = "Dim Store" }, new("Dim Store", "Opened", ColumnType.DateTime, "Opened", false, false, null, true)], false);
