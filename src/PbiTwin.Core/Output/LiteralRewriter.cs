@@ -145,14 +145,15 @@ public sealed partial class LiteralRewriter
         var result = _matcher.Replace(text, original =>
         {
             count++;
-            return MapExact(original, null, null, location, countIt: false) ?? original;
+            // Display text only: which of several equal pseudonyms is used changes nothing, so no warning.
+            return MapExact(original, null, null, location, countIt: false, warnWhenAmbiguous: false) ?? original;
         });
 
         Count(location, count);
         return result;
     }
 
-    private string? MapExact(string value, string? table, string? column, string location, bool countIt = true)
+    private string? MapExact(string value, string? table, string? column, string location, bool countIt = true, bool warnWhenAmbiguous = true)
     {
         if (!_known.TryGetValue(value, out var byDomain) && !_knownIgnoreCase.TryGetValue(value, out byDomain))
         {
@@ -173,7 +174,10 @@ public sealed partial class LiteralRewriter
             if (match is null)
             {
                 match = byDomain.OrderBy(kv => kv.Key.Id, StringComparer.Ordinal).First().Value;
-                Warn($"{location}: a literal matches values of several columns ({string.Join(", ", byDomain.Keys.SelectMany(d => d.Columns).Select(_names.Id))}); the first mapping was used.");
+                if (warnWhenAmbiguous)
+                {
+                    Warn($"{location}: a literal matches values of several columns ({string.Join(", ", byDomain.Keys.SelectMany(d => d.Columns).Select(_names.Id))}); the first mapping was used.");
+                }
             }
 
             pseudonym = match;

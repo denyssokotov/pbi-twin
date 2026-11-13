@@ -174,6 +174,18 @@ public class RewriterTests
     }
 
     [Fact]
+    public void Ambiguous_values_warn_in_filters_and_dax_but_not_in_display_text()
+    {
+        var lit = new LiteralRewriter(Known());
+
+        lit.RewriteText("Other regions overview", "title");
+        Assert.Empty(lit.Warnings);
+
+        lit.MapLiteral("Other", null, null, "filter");
+        Assert.Single(lit.Warnings);
+    }
+
+    [Fact]
     public void Leak_scan_ignores_syntax_literals_such_as_true_and_false()
     {
         var dir = Directory.CreateTempSubdirectory().FullName;
