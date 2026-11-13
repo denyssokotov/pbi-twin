@@ -126,11 +126,11 @@ public sealed class TrustReport
             sb.AppendLine();
             sb.AppendLine(inv, $"First {Math.Min(200, Leaks.Count)} matches:");
             sb.AppendLine();
-            sb.AppendLine("| File | Line | Value from column |");
-            sb.AppendLine("|---|---:|---|");
+            sb.AppendLine("| File | Line | Value from column | Context (value cut out) |");
+            sb.AppendLine("|---|---:|---|---|");
             foreach (var l in Leaks.Take(200))
             {
-                sb.AppendLine(inv, $"| {Escape(l.File)} | {l.Line} | {Escape(l.Columns)} |");
+                sb.AppendLine(inv, $"| {Escape(l.File)} | {l.Line} | {Escape(l.Columns)} | {(l.Context is null ? string.Empty : "`" + Escape(l.Context).Replace("`", "'", StringComparison.Ordinal) + "`")} |");
             }
         }
 

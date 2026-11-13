@@ -132,6 +132,27 @@ public class RewriterTests
     }
 
     [Fact]
+    public void Leak_context_shows_the_structure_with_the_value_cut_out()
+    {
+        var dir = Directory.CreateTempSubdirectory().FullName;
+        try
+        {
+            File.WriteAllText(Path.Combine(dir, "visual.json"), "{ \"Value\": \"'Kyiv'\", \"Other\": 1 }\n");
+            File.WriteAllText(Path.Combine(dir, "data.csv"), "id,city\n1,Kyiv\n");
+
+            var findings = LeakScanner.Scan(dir, Known()).Findings;
+
+            var json = Assert.Single(findings, f => f.File == "visual.json");
+            Assert.Equal("{ \"Value\": \"'‹value›'\", \"Other\": 1 }", json.Context);
+            Assert.Null(Assert.Single(findings, f => f.File == "data.csv").Context);
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Leak_scan_ignores_syntax_literals_such_as_true_and_false()
     {
         var dir = Directory.CreateTempSubdirectory().FullName;

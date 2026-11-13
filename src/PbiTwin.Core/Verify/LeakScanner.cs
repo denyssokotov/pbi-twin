@@ -5,8 +5,8 @@ using PbiTwin.Core.Text;
 
 namespace PbiTwin.Core.Verify;
 
-/// <summary>A leak, described without the leaked value.</summary>
-public sealed record LeakFinding(string File, int Line, string Columns);
+/// <summary>A leak, described without the leaked value. <c>Context</c> is the surrounding text of a model or report file with every original value cut out.</summary>
+public sealed record LeakFinding(string File, int Line, string Columns, string? Context = null);
 
 /// <summary>
 /// Searches every output file for every original value (at least 4 characters) of every anonymized text column.
@@ -79,7 +79,9 @@ public static partial class LeakScanner
                     line = line.Replace(ignoredText, new string(' ', ignoredText.Length), StringComparison.OrdinalIgnoreCase);
                 }
 
-                foreach (var m in matcher.Find(line))
+                var matches = matcher.Find(line).ToList();
+                var isData = ext.Equals(".csv", StringComparison.OrdinalIgnoreCase);
+                foreach (var m in matches)
                 {
                     var end = m.Index + m.Pattern.Length;
                     if (line.Contains('-', StringComparison.Ordinal)
@@ -89,7 +91,7 @@ public static partial class LeakScanner
                     }
 
                     var columns = string.Join(", ", lookup[m.Pattern].Keys.SelectMany(d => d.Columns).Select(names.Id).Distinct());
-                    var finding = new LeakFinding(rel, lineNo, columns);
+                    var finding = new LeakFinding(rel, lineNo, columns, isData ? null : MaskedContext(line, matches, m.Index));
                     var from = m.Index;
                     while (from > 0 && !CellDelimiters.Contains(line[from - 1], StringComparison.Ordinal))
                     {
@@ -142,6 +144,31 @@ public static partial class LeakScanner
         }
 
         return (findings, matcher.Count, files);
+    }
+
+    /// <summary>About 70 characters either side of <paramref name="at"/>, with every match replaced by ‹value›.</summary>
+    private static string MaskedContext(string line, List<TextMatcher.Match> matches, int at)
+    {
+        var sb = new System.Text.StringBuilder();
+        var last = 0;
+        var start = 0;
+        foreach (var m in matches)
+        {
+            sb.Append(line, last, m.Index - last);
+            if (m.Index == at)
+            {
+                start = sb.Length;
+            }
+
+            sb.Append("‹value›");
+            last = m.Index + m.Pattern.Length;
+        }
+
+        sb.Append(line, last, line.Length - last);
+        var text = sb.ToString();
+        var from = Math.Max(0, start - 70);
+        var to = Math.Min(text.Length, start + 77);
+        return (from > 0 ? "…" : string.Empty) + text[from..to].Trim() + (to < text.Length ? "…" : string.Empty);
     }
 
     /// <summary>Columns whose original values occur in <paramref name="text"/> (e.g. the output path).</summary>
