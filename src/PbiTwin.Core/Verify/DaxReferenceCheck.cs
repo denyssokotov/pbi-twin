@@ -34,7 +34,10 @@ public static class DaxReferenceCheck
             expressions++;
             var unresolved = new List<string>();
             DaxRenamer.Rename(dax, identity, site.IsCalculatedTable ? null : site.HomeTable, anyTableFallback: true, unresolved);
-            problems.AddRange(unresolved.Select(u => $"{site.Location}: [{u}]"));
+
+            // An unqualified [Column] that several tables have (e.g. after SUMMARIZE) exists; it just cannot be
+            // pinned to one table, which only matters when renaming.
+            problems.AddRange(unresolved.Where(u => !identity.TablesWithColumn(u).Any()).Select(u => $"{site.Location}: [{u}]"));
             return dax;
         });
 

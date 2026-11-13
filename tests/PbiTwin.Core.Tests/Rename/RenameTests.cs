@@ -105,6 +105,27 @@ public class DaxReferenceCheckTests
         Assert.Equal(CheckStatus.Warn, check.Status);
         Assert.Contains("[Col07]", check.Detail, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void A_column_that_several_tables_have_is_not_reported_as_missing()
+    {
+        var db = new Database { CompatibilityLevel = 1567, Model = new() };
+        foreach (var name in new[] { "Staff", "Goals", "Facts" })
+        {
+            var t = new Table { Name = name };
+            if (name != "Facts")
+            {
+                t.Columns.Add(new DataColumn { Name = "Practice", DataType = DataType.String, SourceColumn = "Practice" });
+            }
+
+            t.Partitions.Add(new Partition { Name = name, Source = new MPartitionSource { Expression = "x" } });
+            db.Model.Tables.Add(t);
+        }
+
+        db.Model.Tables["Facts"].Measures.Add(new Measure { Name = "Debug", Expression = "CONCATENATEX(SUMMARIZE(Staff, Staff[Practice]), [Practice], \", \")" });
+
+        Assert.Equal(CheckStatus.Pass, PbiTwin.Core.Verify.DaxReferenceCheck.Run(db.Model).Status);
+    }
 }
 
 public sealed class RenamedTwinTests : IDisposable
