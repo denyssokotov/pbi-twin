@@ -17,6 +17,10 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <RestoreLockedMode Condition="'$(CI)' == 'true'">true</RestoreLockedMode>
+    <!-- The release is published for win-x64; recording it keeps lock files identical for build and publish. -->
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <!-- Same analyzer package for build and single-file publish, so both restore the same graph. -->
+    <EnableSingleFileAnalyzer>true</EnableSingleFileAnalyzer>
 
     <Authors>PbiTwin contributors</Authors>
     <Copyright>Copyright (c) 2026 PbiTwin contributors</Copyright>

@@ -1,0 +1,66 @@
+name: release
+
+# Push a tag like v0.1.0 to build and publish PbiTwin.exe (wizard) and pbitwin-cli.exe (command line)
+# as self-contained single-file Windows executables, with SHA256SUMS.txt.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: 1
+  DOTNET_NOLOGO: 1
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore (locked)
+        run: dotnet restore --locked-mode
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Test
+        shell: bash
+        run: |
+          dotnet run --configuration Release --no-build --project samples/generator
+          dotnet test --configuration Release --no-build
+
+      - name: No-network check
+        shell: bash
+        run: bash .github/scripts/check-no-network.sh
+
+      - name: Publish single-file executables
+        shell: pwsh
+        run: |
+          $version = '${{ github.ref_name }}'.TrimStart('v')
+          foreach ($project in 'src/PbiTwin.App', 'src/PbiTwin.Cli') {
+            dotnet publish $project --configuration Release --runtime win-x64 --self-contained `
+              -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
+              -p:EnableCompressionInSingleFile=true -p:DebugType=none -p:Version=$version -o dist
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          Push-Location dist
+          Get-ChildItem *.exe | Sort-Object Name | ForEach-Object {
+            '{0}  {1}' -f (Get-FileHash $_ -Algorithm SHA256).Hash.ToLowerInvariant(), $_.Name
+          } | Set-Content -Encoding ascii SHA256SUMS.txt
+          Get-Content SHA256SUMS.txt
+          Pop-Location
+
+      - name: Create GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create '${{ github.ref_name }}' dist/PbiTwin.exe dist/pbitwin-cli.exe dist/SHA256SUMS.txt `
+            --title 'PbiTwin ${{ github.ref_name }}' --generate-notes

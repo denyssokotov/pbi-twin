@@ -46,12 +46,15 @@ You can confirm this with the firewall test below.
 
 Tests only: `xunit`, `xunit.runner.visualstudio`, `Microsoft.NET.Test.Sdk`.
 
+Build only: `Microsoft.NET.ILLink.Tasks`, the single-file analyzer that the .NET SDK adds itself. It checks the
+code at build time and is not part of the executables.
+
 Everything else (CSV, hashing, fake data, the DAX lexer, the leak scanner) is written in this repository using only the .NET base library.
 
 ## Check it yourself
 
-1. **Read the code.** The core is about 3,600 lines in `src/PbiTwin.Core`; the UI has no logic of its own.
-2. **Build it yourself** instead of downloading the exe: `dotnet build -c Release src/PbiTwin.App`.
+1. **Read the code.** The core is about 4,400 lines (with comments) in `src/PbiTwin.Core`; the wizard and the command line have no logic of their own.
+2. **Build it yourself** instead of downloading the exe: `dotnet build -c Release src/PbiTwin.App`, or reproduce the release with the `dotnet publish` command in [release.yml](../.github/workflows/release.yml) and compare with `SHA256SUMS.txt`.
 3. **Run it with the network off.** Disconnect Wi-Fi/Ethernet, or add a Windows Firewall rule:
    ```powershell
    New-NetFirewallRule -DisplayName "Block PbiTwin" -Direction Outbound -Program "C:\path\to\PbiTwin.exe" -Action Block

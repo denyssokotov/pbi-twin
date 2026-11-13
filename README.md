@@ -12,14 +12,18 @@ report, but with fake data that keeps the distributions, trends, seasonality and
 ![Screenshot placeholder: the Scan step](docs/screenshots/scan.png)
 
 - **Offline.** No network calls, no telemetry, no auto-update, no AI. Enforced by a CI check.
-- **Open source (MIT).** About 3,600 lines of core code and two official Microsoft packages. Read it in an evening, build it yourself.
+- **Open source (MIT).** About 4,400 lines of core code (with comments) and two official Microsoft packages. Read it in an evening, build it yourself.
 - **Verified.** Every run ends with a trust report: row counts, referential integrity, key uniqueness, a leak scan of every output file, and proof that trends and ratios survived.
 
 ## Quick start
 
 1. Save your report as a **Power BI Project (.pbip)** and keep it open in Power BI Desktop.
-2. Run `PbiTwin.exe`, pick the running model and the `.pbip` file, review the rules, click **Create twin**.
-3. Open `<Name>_Twin.pbip`, *Refresh*, and share the twin.
+2. Download `PbiTwin.exe` from [Releases](../../releases) (or [build it yourself](#build-from-source)), run it,
+   pick the running model and the `.pbip` file, review the rules, click **Create twin**.
+3. Open `<Name>_Twin.pbip`, *Refresh*, and share the twin folder (never the `.codebook.json` next to it).
+
+Verify the download: `Get-FileHash PbiTwin.exe` must match the line in `SHA256SUMS.txt` of the release.
+The executables are not code-signed, so Windows SmartScreen may ask for confirmation.
 
 ## What gets anonymized
 
@@ -73,6 +77,19 @@ and [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md) for the algorithms.
 - When renaming, names that DAX creates itself (e.g. `"Year"` in `ADDCOLUMNS` inside a calculated table) stay as they are. Calculation item names and field-parameter labels are not renamed.
 - Images in the report (logos, `RegisteredResources`) are copied as-is.
 - This is not anonymization in the legal sense (e.g. GDPR). It is a tool for safe development, demos and sharing with AI assistants.
+
+## Command line
+
+`pbitwin-cli.exe` does the same without the wizard, for scripts and CI:
+
+```
+pbitwin-cli list
+pbitwin-cli --pbip C:\Reports\Sales.pbip --port 52123 --out C:\Twins\Sales_Twin --rename semantic --rows 1000000
+pbitwin-cli translate --codebook C:\Twins\Twin.codebook.json --to real < measure.dax
+```
+
+It prints the trust report checks and exits with `0` (all passed), `2` (twin created, some checks failed) or `1` (error).
+With `--csv <folder>` instead of `--port` it reads the original data from CSV files — this is how the tests run on Linux.
 
 ## Build from source
 

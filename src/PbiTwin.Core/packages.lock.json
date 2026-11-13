@@ -22,6 +22,12 @@
           "Microsoft.Identity.Client.Broker": "4.83.3"
         }
       },
+      "Microsoft.NET.ILLink.Tasks": {
+        "type": "Direct",
+        "requested": "[8.0.34, )",
+        "resolved": "8.0.34",
+        "contentHash": "AoMGwI/388svzARQ2NYC25vFOQGcf13FgQWv61TwPAdPUMOejXpQxBQHrQpXfqM7vqxxj1E3SAkX/OkE2cuChw=="
+      },
       "Microsoft.Identity.Client": {
         "type": "Transitive",
         "resolved": "4.83.3",
@@ -68,6 +74,23 @@
         "type": "Transitive",
         "resolved": "4.5.0",
         "contentHash": "okurQJO6NRE/apDIP23ajJ0hpiNmJ+f0BwOlB/cSqTLQlw5upkf+5+96+iG2Jw40G1fCVCyPz/FhIABUjMR+RQ=="
+      }
+    },
+    "net8.0/win-x64": {
+      "Microsoft.AnalysisServices.AdomdClient": {
+        "type": "Direct",
+        "requested": "[19.118.3, )",
+        "resolved": "19.118.3",
+        "contentHash": "uEWP6OLNtwSqnCFNVj1QDCziosBxM6PkZIhMLmnq4uW5VH009Mz7xRM0hVaSLJshQt67ye4qd1s93mETZ5QoXw==",
+        "dependencies": {
+          "Microsoft.Identity.Client": "4.83.3",
+          "Microsoft.Identity.Client.Broker": "4.83.3"
+        }
+      },
+      "Microsoft.Identity.Client.NativeInterop": {
+        "type": "Transitive",
+        "resolved": "0.20.4",
+        "contentHash": "JHlfJ8oolxj20sNlwdIh8H8MZtzVQ55MyOjrIrQCtD/KJL5x8EOjQxafYu8AEYZOCSW+09DQnRogGk+J37BURA=="
       }
     }
   }
