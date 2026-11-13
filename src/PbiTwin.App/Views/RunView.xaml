@@ -1,0 +1,16 @@
+<UserControl x:Class="PbiTwin.App.Views.RunView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top">
+            <TextBlock Style="{StaticResource H1}" Text="Creating the twin" />
+            <TextBlock Style="{StaticResource Lead}" Text="Reading each table from Power BI Desktop, writing anonymized CSV files, then verifying the result." />
+            <ProgressBar Value="{Binding Progress, Mode=OneWay}" Maximum="100" Height="8" Foreground="{StaticResource Accent}" Background="{StaticResource Line}" BorderThickness="0" />
+            <DockPanel Margin="0,8,0,16">
+                <Button DockPanel.Dock="Right" Content="Cancel" Command="{Binding CancelCommand}" />
+                <TextBlock Text="{Binding ProgressText}" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
+            </DockPanel>
+        </StackPanel>
+        <ListBox ItemsSource="{Binding Log}" FontFamily="Consolas" FontSize="12" BorderBrush="{StaticResource Line}" Background="{StaticResource Surface}" />
+    </DockPanel>
+</UserControl>

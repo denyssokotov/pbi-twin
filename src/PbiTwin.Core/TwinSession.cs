@@ -176,15 +176,14 @@ public sealed class TwinSession
     }
 
     /// <summary>Tables in the PBIP that the running model does not have, and vice versa.</summary>
-    public (IReadOnlyList<string> MissingInInstance, IReadOnlyList<string> MissingInProject) Compare(IEnumerable<string> instanceTables)
+    public static (IReadOnlyList<string> MissingInInstance, IReadOnlyList<string> MissingInProject) Compare(ModelInfo model, IEnumerable<string> instanceTables)
     {
-        var instance = instanceTables.Where(n => !n.StartsWith("LocalDateTable_", StringComparison.Ordinal) && !n.StartsWith("DateTableTemplate_", StringComparison.Ordinal))
-            .ToHashSet(StringComparer.Ordinal);
-        var project = Model.Tables.Select(t => t.Name).Concat(Model.SkippedTables.Select(s => s.Table))
-            .Where(n => !n.StartsWith("LocalDateTable_", StringComparison.Ordinal) && !n.StartsWith("DateTableTemplate_", StringComparison.Ordinal))
-            .ToHashSet(StringComparer.Ordinal);
+        ArgumentNullException.ThrowIfNull(model);
+        ArgumentNullException.ThrowIfNull(instanceTables);
+
+        static bool User(string n) => !n.StartsWith("LocalDateTable_", StringComparison.Ordinal) && !n.StartsWith("DateTableTemplate_", StringComparison.Ordinal);
+        var instance = instanceTables.Where(User).ToHashSet(StringComparer.Ordinal);
+        var project = model.Tables.Select(t => t.Name).Concat(model.SkippedTables.Select(s => s.Table)).Where(User).ToHashSet(StringComparer.Ordinal);
         return (project.Except(instance).Order(StringComparer.Ordinal).ToList(), instance.Except(project).Order(StringComparer.Ordinal).ToList());
     }
-
-    internal static Database LoadForTests(PbipProject p) => p.LoadDatabase();
 }

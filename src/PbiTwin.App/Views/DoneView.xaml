@@ -1,0 +1,67 @@
+<UserControl x:Class="PbiTwin.App.Views.DoneView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+            <TextBlock Style="{StaticResource H1}" Text="Trust report" />
+            <TextBlock Text="{Binding ResultHeadline}" FontSize="15" Margin="0,0,0,4">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Foreground" Value="{StaticResource Bad}" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ResultPassed}" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource Good}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+            <TextBlock Text="{Binding OutputPath}" Style="{StaticResource Hint}" Margin="0,0,0,16" />
+
+            <ItemsControl ItemsSource="{Binding Checks}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Padding="0,10">
+                            <DockPanel>
+                                <Border x:Name="Badge" DockPanel.Dock="Left" Width="26" Height="26" CornerRadius="13" Background="#ECFDF3" Margin="0,0,12,0">
+                                    <TextBlock x:Name="Icon" Text="{Binding Icon}" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" Foreground="{StaticResource Good}" />
+                                </Border>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding Detail}" Style="{StaticResource Hint}" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                        <DataTemplate.Triggers>
+                            <DataTrigger Binding="{Binding IsWarn}" Value="True">
+                                <Setter TargetName="Badge" Property="Background" Value="#FFFAEB" />
+                                <Setter TargetName="Icon" Property="Foreground" Value="{StaticResource Warn}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsFail}" Value="True">
+                                <Setter TargetName="Badge" Property="Background" Value="#FEF3F2" />
+                                <Setter TargetName="Icon" Property="Foreground" Value="{StaticResource Bad}" />
+                            </DataTrigger>
+                        </DataTemplate.Triggers>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <ItemsControl ItemsSource="{Binding Warnings}" Margin="0,12,0,0">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding StringFormat='! {0}'}" Foreground="{StaticResource Warn}" TextWrapping="Wrap" Margin="0,2" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <StackPanel Orientation="Horizontal" Margin="0,24,0,0">
+                <Button Style="{StaticResource Primary}" Content="Open Twin in Power BI Desktop" Command="{Binding OpenTwinCommand}" Margin="0,0,8,0" />
+                <Button Content="Open output folder" Command="{Binding OpenFolderCommand}" Margin="0,0,8,0" />
+                <Button Content="Open TRUST-REPORT.md" Command="{Binding OpenReportCommand}" Margin="0,0,8,0" />
+                <Button Content="Change options and run again" Command="{Binding StartOverCommand}" />
+            </StackPanel>
+            <TextBlock Style="{StaticResource Hint}" Margin="0,12,0,0"
+                       Text="Before opening the twin, close the original report in Power BI Desktop or open the twin in a second window. Refresh the twin once to load the CSV data." />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

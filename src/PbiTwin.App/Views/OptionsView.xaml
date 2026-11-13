@@ -1,0 +1,48 @@
+<UserControl x:Class="PbiTwin.App.Views.OptionsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel MaxWidth="640" HorizontalAlignment="Left">
+            <TextBlock Style="{StaticResource H1}" Text="Options" />
+            <TextBlock Style="{StaticResource Lead}" Text="The defaults are fine for most models." />
+
+            <TextBlock Style="{StaticResource Label}" Text="Seed" />
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="New seed" Command="{Binding NewSeedCommand}" Margin="8,0,0,0" />
+                <TextBox Text="{Binding Seed, UpdateSourceTrigger=PropertyChanged}" FontFamily="Consolas" />
+            </DockPanel>
+            <TextBlock Style="{StaticResource Hint}" Text="Same seed + same model = same twin. The seed is never saved to disk; keep it to yourself — with it, pseudonyms can be recomputed." />
+
+            <TextBlock Style="{StaticResource Label}" Text="Money factor range" />
+            <StackPanel Orientation="Horizontal">
+                <TextBox Text="{Binding MinFactor}" Width="80" />
+                <TextBlock Text="  to  " VerticalAlignment="Center" />
+                <TextBox Text="{Binding MaxFactor}" Width="80" />
+            </StackPanel>
+            <TextBlock Style="{StaticResource Hint}" Text="All amounts are multiplied by one secret factor from this range, so margins, shares and growth rates stay the same." />
+
+            <TextBlock Style="{StaticResource Label}" Text="Noise per row, %" />
+            <TextBox Text="{Binding NoisePercent}" Width="80" HorizontalAlignment="Left" />
+
+            <TextBlock Style="{StaticResource Label}" Text="Date shift, days" />
+            <TextBox Text="{Binding DateShiftText, UpdateSourceTrigger=PropertyChanged}" Width="120" HorizontalAlignment="Left" />
+            <TextBlock Style="{StaticResource Hint}" Text="Empty = automatic: a whole number of years (364-day steps keep weekdays) plus or minus a few weeks." />
+
+            <TextBlock Style="{StaticResource Label}" Text="Row limit for fact tables" />
+            <TextBox Text="{Binding RowLimitText, UpdateSourceTrigger=PropertyChanged}" Width="120" HorizontalAlignment="Left" />
+            <TextBlock Style="{StaticResource Hint}" Text="Empty = all rows. Dimension tables are always copied in full." />
+
+            <CheckBox Content="Remove descriptions and annotations from the model" IsChecked="{Binding ClearDescriptions}" Margin="0,16,0,0" />
+
+            <TextBlock Style="{StaticResource Label}" Text="Twin name" />
+            <TextBox Text="{Binding TwinName, UpdateSourceTrigger=PropertyChanged}" />
+
+            <TextBlock Style="{StaticResource Label}" Text="Output folder" />
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="Browse…" Command="{Binding BrowseOutputCommand}" Margin="8,0,0,0" />
+                <TextBox Text="{Binding OutputFolder, UpdateSourceTrigger=PropertyChanged}" />
+            </DockPanel>
+            <TextBlock Style="{StaticResource Hint}" Text="Created (or replaced, if PbiTwin made it before). Your original project is never modified." />
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

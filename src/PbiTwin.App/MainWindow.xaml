@@ -1,12 +1,79 @@
 <Window x:Class="PbiTwin.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="PbiTwin" Height="640" Width="1000"
-        Background="White" FontFamily="Segoe UI" FontSize="13">
+        xmlns:views="clr-namespace:PbiTwin.App.Views"
+        Title="PbiTwin" Height="760" Width="1180" MinHeight="560" MinWidth="900"
+        Background="White" FontFamily="Segoe UI" FontSize="13" Foreground="{StaticResource Ink}"
+        WindowStartupLocation="CenterScreen">
     <DockPanel>
-        <Border DockPanel.Dock="Bottom" Background="#F3F5F8" Padding="12,6">
-            <TextBlock Foreground="#475467" Text="🔒 Offline · no network calls · open source" />
+        <!-- Permanent trust badge. -->
+        <Border DockPanel.Dock="Bottom" Background="{StaticResource Surface}" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="16,7">
+            <TextBlock Foreground="{StaticResource Muted}" Text="🔒 Offline · no network calls · open source" />
         </Border>
-        <TextBlock Margin="24" FontSize="20" Text="PbiTwin (work in progress)" />
+
+        <!-- Steps. -->
+        <Border DockPanel.Dock="Left" Width="210" Background="{StaticResource Surface}" BorderBrush="{StaticResource Line}" BorderThickness="0,0,1,0" Padding="16,20">
+            <StackPanel>
+                <TextBlock Text="PbiTwin" FontSize="20" FontWeight="Bold" Foreground="{StaticResource Accent}" />
+                <TextBlock Text="Anonymized twin of a Power BI model" Style="{StaticResource Hint}" Margin="0,2,0,24" />
+                <ItemsControl ItemsSource="{Binding Steps}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border x:Name="Row" CornerRadius="6" Padding="10,8" Margin="0,0,0,4">
+                                <StackPanel Orientation="Horizontal">
+                                    <Border x:Name="Dot" Width="24" Height="24" CornerRadius="12" Background="White" BorderBrush="{StaticResource Line}" BorderThickness="1">
+                                        <TextBlock x:Name="Num" Text="{Binding Number}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource Muted}" />
+                                    </Border>
+                                    <TextBlock x:Name="Title" Text="{Binding Title}" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource Muted}" />
+                                </StackPanel>
+                            </Border>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding IsDone}" Value="True">
+                                    <Setter TargetName="Dot" Property="Background" Value="{StaticResource AccentSoft}" />
+                                    <Setter TargetName="Dot" Property="BorderBrush" Value="{StaticResource Accent}" />
+                                    <Setter TargetName="Num" Property="Text" Value="✓" />
+                                    <Setter TargetName="Num" Property="Foreground" Value="{StaticResource Accent}" />
+                                    <Setter TargetName="Title" Property="Foreground" Value="{StaticResource Ink}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                    <Setter TargetName="Row" Property="Background" Value="{StaticResource AccentSoft}" />
+                                    <Setter TargetName="Dot" Property="Background" Value="{StaticResource Accent}" />
+                                    <Setter TargetName="Dot" Property="BorderBrush" Value="{StaticResource Accent}" />
+                                    <Setter TargetName="Num" Property="Foreground" Value="White" />
+                                    <Setter TargetName="Title" Property="Foreground" Value="{StaticResource Ink}" />
+                                    <Setter TargetName="Title" Property="FontWeight" Value="SemiBold" />
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
+
+        <!-- Navigation. -->
+        <Border DockPanel.Dock="Bottom" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="24,12">
+            <DockPanel>
+                <Button DockPanel.Dock="Left" Content="Back" Command="{Binding BackCommand}" />
+                <Button DockPanel.Dock="Right" Style="{StaticResource Primary}" Content="{Binding NextText}" Command="{Binding NextCommand}" MinWidth="120" />
+                <TextBlock Text="Working…" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,16,0" Foreground="{StaticResource Muted}"
+                           Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}" />
+            </DockPanel>
+        </Border>
+
+        <!-- Content. -->
+        <DockPanel Margin="28,24,28,12">
+            <Border DockPanel.Dock="Top" Background="#FEF3F2" BorderBrush="#FECDCA" BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,12"
+                    Visibility="{Binding HasError, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Text="{Binding Error}" Foreground="{StaticResource Bad}" TextWrapping="Wrap" />
+            </Border>
+            <Grid>
+                <views:SourceView Visibility="{Binding Current, Converter={StaticResource StepVisibility}, ConverterParameter=Source}" />
+                <views:ScanView Visibility="{Binding Current, Converter={StaticResource StepVisibility}, ConverterParameter=Scan}" />
+                <views:OptionsView Visibility="{Binding Current, Converter={StaticResource StepVisibility}, ConverterParameter=Options}" />
+                <views:PreviewView Visibility="{Binding Current, Converter={StaticResource StepVisibility}, ConverterParameter=Preview}" />
+                <views:RunView Visibility="{Binding Current, Converter={StaticResource StepVisibility}, ConverterParameter=Run}" />
+                <views:DoneView Visibility="{Binding Current, Converter={StaticResource StepVisibility}, ConverterParameter=Done}" />
+            </Grid>
+        </DockPanel>
     </DockPanel>
 </Window>

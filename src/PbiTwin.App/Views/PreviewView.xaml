@@ -1,0 +1,24 @@
+<UserControl x:Class="PbiTwin.App.Views.PreviewView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <DockPanel>
+        <StackPanel DockPanel.Dock="Top">
+            <TextBlock Style="{StaticResource H1}" Text="Preview" />
+            <TextBlock Style="{StaticResource Lead}"
+                       Text="The first rows of each table, before and after. Original values are shown only here, in memory, and are never written anywhere. Pseudonym numbers can differ slightly from the final run." />
+            <ComboBox ItemsSource="{Binding PreviewTables}" SelectedItem="{Binding SelectedPreviewTable}" Width="260" HorizontalAlignment="Left" Margin="0,0,0,12" />
+        </StackPanel>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <TextBlock Style="{StaticResource Label}" Text="Before (original)" Margin="0,0,0,4" />
+            <DataGrid Grid.Row="1" ItemsSource="{Binding PreviewBefore}" IsReadOnly="True" AutoGenerateColumns="True" />
+            <TextBlock Grid.Row="2" Style="{StaticResource Label}" Text="After (twin)" Foreground="{StaticResource Accent}" />
+            <DataGrid Grid.Row="3" ItemsSource="{Binding PreviewAfter}" IsReadOnly="True" AutoGenerateColumns="True" />
+        </Grid>
+    </DockPanel>
+</UserControl>
