@@ -5,6 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <!-- Enum members such as Int64 or String deliberately mirror TOM and DAX type names. -->
+    <NoWarn>$(NoWarn);CA1720</NoWarn>
 
     <!-- Reproducible builds: anyone can rebuild and compare. -->
     <Deterministic>true</Deterministic>

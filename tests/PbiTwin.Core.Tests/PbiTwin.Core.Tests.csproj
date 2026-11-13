@@ -5,7 +5,7 @@
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <!-- xUnit test method names use underscores. -->
-    <NoWarn>$(NoWarn);CA1707</NoWarn>
+    <NoWarn>$(NoWarn);CA1707;CA1861</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

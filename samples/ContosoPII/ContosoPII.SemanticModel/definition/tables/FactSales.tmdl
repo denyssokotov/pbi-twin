@@ -24,11 +24,11 @@ table FactSales
 		formatString: 0.0%
 
 	/// Hard-coded literal: a twin must rewrite "Enterprise" consistently or this measure breaks.
-	measure 'Enterprise Revenue' = CALCULATE([Revenue], DimCustomer[Segment] = "Enterprise")
+	measure 'Top Segment Revenue' = CALCULATE([Revenue], DimCustomer[Segment] = "Enterprise")
 		formatString: #,0
 
 	/// Hard-coded literal pointing at a real city.
-	measure 'Kyiv Stores Revenue' = CALCULATE([Revenue], DimStore[City] = "Kyiv")
+	measure 'Capital Stores Revenue' = CALCULATE([Revenue], DimStore[City] = "Kyiv")
 		formatString: #,0
 
 	column OrderNumber
