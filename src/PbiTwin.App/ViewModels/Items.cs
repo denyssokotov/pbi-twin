@@ -68,8 +68,15 @@ public sealed record CheckItem(Check Check)
 }
 
 /// <summary>One row of the Scan grid. Changing the rule changes it for the whole shared domain.</summary>
-public sealed class ColumnRow(ColumnPlan plan, AnonymizationPlan owner, Action<Domain> domainChanged) : ViewModelBase
+public sealed class ColumnRow(ColumnPlan plan, AnonymizationPlan owner, Action<Domain> domainChanged, Action<ColumnRow> unlink) : ViewModelBase
 {
+    private RelayCommand? _unlinkCommand;
+
+    /// <summary>Gives the column its own mapping (e.g. two "Region" columns that mean different things).</summary>
+    public RelayCommand UnlinkCommand => _unlinkCommand ??= new RelayCommand(() => unlink(this), () => IsShared);
+
+    public bool IsLowConfidence => Plan.Classification.Confidence == PbiTwin.Core.Classify.Confidence.Low;
+
     public ColumnPlan Plan { get; } = plan;
 
     public string Table => Plan.Column.Table;

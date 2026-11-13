@@ -78,6 +78,17 @@ public class FileNameTests
         Assert.Equal(expected, ModelRewriter.CsvFileName(table));
 }
 
+public class TwinFolderTests
+{
+    [Theory]
+    [InlineData("a/b")]
+    [InlineData("x:y")]
+    [InlineData("Twin.")]
+    [InlineData(" ")]
+    public void Invalid_twin_names_are_rejected_with_a_clear_message(string name) =>
+        Assert.ThrowsAny<ArgumentException>(() => TwinFolder.Create(Path.Combine(Path.GetTempPath(), "pbitwin-tests", Guid.NewGuid().ToString("N")), name));
+}
+
 public class NumberLiteralWarningTests
 {
     [Fact]

@@ -429,7 +429,17 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         Error = null;
         try
         {
-            var items = await Task.Run(() => DesktopInstances.Find().Select(Describe).ToList());
+            List<InstanceItem> items;
+            try
+            {
+                items = await Task.Run(() => DesktopInstances.Find().Select(Describe).ToList());
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                Error = "Could not look for Power BI Desktop: " + ex.Message;
+                return;
+            }
+
             Instances.Clear();
             foreach (var i in items)
             {
@@ -524,7 +534,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
             Columns.Clear();
             foreach (var p in _plan.Columns.OrderBy(p => p.Column.Table, StringComparer.Ordinal))
             {
-                Columns.Add(new ColumnRow(p, _plan, DomainChanged));
+                Columns.Add(new ColumnRow(p, _plan, DomainChanged, Unlink));
             }
 
             Raise(nameof(ScanSummary));
@@ -586,6 +596,14 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         {
             Error = "Could not load the rules: " + ex.Message;
         }
+    }
+
+    private void Unlink(ColumnRow row)
+    {
+        var before = row.Plan.Domain;
+        _plan!.Unlink(row.Plan.Column.Id);
+        DomainChanged(before);
+        row.Refresh();
     }
 
     private void DomainChanged(Domain domain)

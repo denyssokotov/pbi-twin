@@ -54,6 +54,13 @@ public sealed class TwinFolder
     /// </summary>
     public static TwinFolder Create(string root, string name)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        if (name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || name.IndexOfAny(['\\', '/', ':', '*', '?', '"', '<', '>', '|']) >= 0
+            || name.EndsWith('.') || name.EndsWith(' '))
+        {
+            throw new ArgumentException($"'{name}' cannot be used as a file name. Use letters, digits, spaces, '-' or '_'.", nameof(name));
+        }
+
         root = Path.GetFullPath(root);
         if (Directory.Exists(root))
         {

@@ -5,7 +5,7 @@
         <StackPanel DockPanel.Dock="Top">
             <TextBlock Style="{StaticResource H1}" Text="Scan" />
             <TextBlock Style="{StaticResource Lead}"
-                       Text="Every column got a rule from simple heuristics. Check them and change any that are wrong. Columns with 🔗 share one mapping (e.g. a key in a dimension and in its fact tables), so a change applies to all of them." />
+                       Text="Every column got a rule from simple heuristics. Check them and change any that are wrong. Columns with 🔗 share one mapping (e.g. a key in a dimension and in its fact tables), so a change applies to all of them; click 🔗 to give a column its own mapping. Highlighted rows are low-confidence guesses." />
             <DockPanel Margin="0,0,0,8">
                 <Button DockPanel.Dock="Right" Content="Load rules…" Command="{Binding LoadRulesCommand}" Margin="8,0,0,0"
                         ToolTip="Apply rules saved from an earlier run on this model" />
@@ -18,6 +18,16 @@
             <TextBlock Text="{Binding RulesStatus}" Style="{StaticResource Hint}" Margin="0,0,0,8" />
         </StackPanel>
         <DataGrid ItemsSource="{Binding ColumnsView}" AutoGenerateColumns="False" IsReadOnly="False">
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Style.Triggers>
+                        <!-- Low-confidence guesses deserve a second look. -->
+                        <DataTrigger Binding="{Binding IsLowConfidence}" Value="True">
+                            <Setter Property="Background" Value="#FFFAEB" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Table" Binding="{Binding Table}" IsReadOnly="True" Width="130" />
                 <DataGridTextColumn Header="Column" Binding="{Binding Column}" IsReadOnly="True" Width="150" />
@@ -39,11 +49,12 @@
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
-                <DataGridTemplateColumn Header="" Width="30" IsReadOnly="True">
+                <DataGridTemplateColumn Header="" Width="34" IsReadOnly="True">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <TextBlock Text="🔗" ToolTip="{Binding SharedWith}" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                       Visibility="{Binding IsShared, Converter={StaticResource BoolToVisibility}}" />
+                            <Button Content="🔗" ToolTip="{Binding SharedWith}" Command="{Binding UnlinkCommand}" Padding="2,0"
+                                    BorderThickness="0" Background="Transparent" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    Visibility="{Binding IsShared, Converter={StaticResource BoolToVisibility}}" />
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
