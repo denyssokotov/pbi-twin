@@ -23,6 +23,7 @@ Needs: Windows, Power BI Desktop (recent), .NET 8 SDK.
 - [ ] **Source**: the running ContosoPII model is listed; choose `ContosoPII.pbip`; status shows *Matched ✓*.
 - [ ] **Scan**: FullName → PersonName, Email → Email, IBAN → Iban, City → City (🔗 with DimStore[City]),
       ManagerKey 🔗 EmployeeKey, Discount → Keep, Comment → FreeText. Examples are masked.
+- [ ] Type `city` in the filter box: only the two City columns remain. Change `DimProduct[Brand]` to *Keep*, click *Save rules…*.
 - [ ] **Options**: keep defaults; note the seed.
 - [ ] **Preview**: before/after look right for DimCustomer and FactSales.
 - [ ] **Run** → **Done**: all checks green, *0 leaks found*.
@@ -57,6 +58,8 @@ Get-ChildItem -Recurse -File | Select-String -Pattern "Kovalenko","ukr.net","Kyi
 - [ ] Open the twin: tables are `FactA`, `DimA`…, columns `Col01`…, measures `Measure01`…; all visuals, RLS and `Margin %` still work.
 - [ ] Trust report: *DAX references* is green; no original table/column/measure name appears in it.
 - [ ] Give an AI the twin's model (e.g. the TMDL) and ask for a new measure. Paste it into *Translate DAX… → Twin → Real*, add it to the original report — it works.
+
+- [ ] Start a new run, *Load rules…*: `DimProduct[Brand]` is *Keep* again; the status line says how many rules were applied.
 
 ## 7. Offline proof (optional)
 

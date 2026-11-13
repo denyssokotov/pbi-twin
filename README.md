@@ -41,7 +41,8 @@ The executables are not code-signed, so Windows SmartScreen may ask for confirma
 | Date | date/time type | shifted by one offset of whole weeks (≈ whole years) |
 | Boolean / percent | type / values between 0 and 1 | kept |
 
-You can override every rule in the wizard. Literals that hold original values are rewritten consistently
+You can override every rule in the wizard, and save the reviewed rules (column names and rules only, no data)
+to reuse them on the next run of the same model. Literals that hold original values are rewritten consistently
 in measures, calculated columns, calculation items, RLS filters, report filters, titles and textboxes, so
 `CALCULATE([Revenue], DimCustomer[Segment] = "Enterprise")` still works in the twin. Original data
 sources, server names and parameters are removed; descriptions and annotations are cleaned by default.
@@ -75,7 +76,7 @@ and [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md) for the algorithms.
 - Size: data is streamed, but every distinct original text value of anonymized columns is kept in memory for
   one-to-one mapping and the leak scan — about 0.5 GB per million distinct identifiers (e.g. order numbers).
   A 2-million-row fact table takes ~20 seconds on a laptop. For very large models, use the fact row limit.
-- Hard-coded numbers in DAX (e.g. `[Revenue] > 1000000`) and hard-coded dates are not rewritten; date literals are flagged in the trust report.
+- Hard-coded numbers and dates in DAX (e.g. `Sales[Amount] > 1000000`, `DATE(2024, 1, 1)`) are not rewritten; the trust report lists every expression where this changes the result.
 - Names are kept unless you turn on renaming. Without it, a value used as a name (e.g. a measure called *Kyiv Revenue*) is reported as a leak.
 - When renaming, names that DAX creates itself (e.g. `"Year"` in `ADDCOLUMNS` inside a calculated table) stay as they are. Calculation item names and field-parameter labels are not renamed.
 - Images in the report (logos, `RegisteredResources`) are copied as-is.
@@ -87,7 +88,7 @@ and [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md) for the algorithms.
 
 ```
 pbitwin-cli list
-pbitwin-cli --pbip C:\Reports\Sales.pbip --port 52123 --out C:\Twins\Sales_Twin --rename semantic --rows 1000000
+pbitwin-cli --pbip C:\Reports\Sales.pbip --port 52123 --out C:\Twins\Sales_Twin --rename semantic --rows 1000000 --rules sales.pbitwin-rules.json
 pbitwin-cli translate --codebook C:\Twins\Twin.codebook.json --to real < measure.dax
 ```
 

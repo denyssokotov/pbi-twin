@@ -6,9 +6,18 @@
             <TextBlock Style="{StaticResource H1}" Text="Scan" />
             <TextBlock Style="{StaticResource Lead}"
                        Text="Every column got a rule from simple heuristics. Check them and change any that are wrong. Columns with 🔗 share one mapping (e.g. a key in a dimension and in its fact tables), so a change applies to all of them." />
-            <TextBlock Text="{Binding ScanSummary}" Foreground="{StaticResource Muted}" Margin="0,0,0,8" />
+            <DockPanel Margin="0,0,0,8">
+                <Button DockPanel.Dock="Right" Content="Load rules…" Command="{Binding LoadRulesCommand}" Margin="8,0,0,0"
+                        ToolTip="Apply rules saved from an earlier run on this model" />
+                <Button DockPanel.Dock="Right" Content="Save rules…" Command="{Binding SaveRulesCommand}" Margin="8,0,0,0"
+                        ToolTip="Save the rules (column names and rules only, no data) for the next run" />
+                <TextBox DockPanel.Dock="Left" Width="240" Text="{Binding ColumnFilter, UpdateSourceTrigger=PropertyChanged}"
+                         ToolTip="Filter by table, column, detected class or rule" />
+                <TextBlock Text="{Binding ScanSummary}" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="12,0,0,0" />
+            </DockPanel>
+            <TextBlock Text="{Binding RulesStatus}" Style="{StaticResource Hint}" Margin="0,0,0,8" />
         </StackPanel>
-        <DataGrid ItemsSource="{Binding Columns}" AutoGenerateColumns="False" IsReadOnly="False">
+        <DataGrid ItemsSource="{Binding ColumnsView}" AutoGenerateColumns="False" IsReadOnly="False">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Table" Binding="{Binding Table}" IsReadOnly="True" Width="130" />
                 <DataGridTextColumn Header="Column" Binding="{Binding Column}" IsReadOnly="True" Width="150" />

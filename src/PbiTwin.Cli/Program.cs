@@ -25,6 +25,8 @@ const string Usage = """
         --rows <n>        row limit for fact tables
         --noise <pct>     per-row noise for amounts (default: 3)
         --keep-descriptions
+        --rules <file>    apply rules saved earlier (column names and rules only)
+        --save-rules <file>  save the rules used for this run
 
     List running Power BI Desktop models:
       pbitwin-cli list
@@ -124,6 +126,17 @@ static int Create(Dictionary<string, string?> o)
         });
 
         var plan = session.Scan(progress: progress);
+        if (o.TryGetValue("rules", out var rulesFile))
+        {
+            var applied = RulesFile.Apply(plan, File.ReadAllText(rulesFile!));
+            Console.Error.WriteLine($"rules: {applied.Applied} applied, {applied.NotInFile.Count} new columns, {applied.NotInModel.Count} no longer in the model, {applied.Rejected.Count} rejected");
+        }
+
+        if (o.TryGetValue("save-rules", out var saveRules))
+        {
+            File.WriteAllText(saveRules!, RulesFile.Save(plan));
+        }
+
         var result = session.Run(plan, options, output, o.GetValueOrDefault("name"), progress);
 
         Console.WriteLine();

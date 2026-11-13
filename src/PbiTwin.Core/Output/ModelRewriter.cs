@@ -117,11 +117,41 @@ public static class ModelRewriter
         return sb.ToString();
     }
 
+    private static readonly HashSet<char> InvalidFileChars =
+        [.. Path.GetInvalidFileNameChars(), '\\', '/', ':', '*', '?', '"', '<', '>', '|', '%'];
+
+    private static readonly HashSet<string> ReservedNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "CON", "PRN", "AUX", "NUL",
+        "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+        "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+    };
+
+    /// <summary>
+    /// File name for a table's CSV, valid on Windows and one-to-one: characters a file name cannot hold (and '%'),
+    /// a trailing dot or space, and the first letter of reserved names like CON are written as %XX.
+    /// </summary>
     public static string CsvFileName(string table)
     {
         ArgumentNullException.ThrowIfNull(table);
-        var invalid = Path.GetInvalidFileNameChars().Concat(['\\', '/', ':', '*', '?', '"', '<', '>', '|']).ToHashSet();
-        return new string(table.Select(c => invalid.Contains(c) ? '_' : c).ToArray()) + ".csv";
+
+        var sb = new System.Text.StringBuilder(table.Length + 4);
+        for (var i = 0; i < table.Length; i++)
+        {
+            var c = table[i];
+            var last = i == table.Length - 1;
+            var reservedStart = i == 0 && ReservedNames.Contains(table.Split('.')[0]);
+            if (InvalidFileChars.Contains(c) || c < ' ' || (last && c is '.' or ' ') || reservedStart)
+            {
+                sb.Append('%').Append(((int)c).ToString("X2", CultureInfo.InvariantCulture));
+            }
+            else
+            {
+                sb.Append(c);
+            }
+        }
+
+        return sb.Append(".csv").ToString();
     }
 
     private static string MType(ColumnInfo c) => c.Type switch

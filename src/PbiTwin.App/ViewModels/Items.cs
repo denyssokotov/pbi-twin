@@ -108,7 +108,8 @@ public sealed class ColumnRow(ColumnPlan plan, AnonymizationPlan owner, Action<D
         }
     }
 
-    public void Refresh() => Raise(nameof(Rule));
+    /// <summary>Re-reads every property (rule or shared mapping changed).</summary>
+    public void Refresh() => Raise(string.Empty);
 
     private static string Mask(object value)
     {

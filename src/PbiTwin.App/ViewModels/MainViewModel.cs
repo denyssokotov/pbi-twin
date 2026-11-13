@@ -1,8 +1,10 @@
 using System.Collections.ObjectModel;
 using System.Data;
 using System.Diagnostics;
+using System.ComponentModel;
 using System.Globalization;
 using System.IO;
+using System.Windows.Data;
 using Microsoft.Win32;
 using PbiTwin.App.Mvvm;
 using PbiTwin.Core;
@@ -46,6 +48,8 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     private string _outputFolder = string.Empty;
     private string _twinName = string.Empty;
     private RenameMode _renameMode = RenameMode.None;
+    private string _columnFilter = string.Empty;
+    private string _rulesStatus = string.Empty;
 
     private IReadOnlyList<PreviewTable> _preview = [];
     private string? _selectedPreviewTable;
@@ -83,6 +87,10 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         OpenReportCommand = new RelayCommand(() => OpenFile(_result!.Folder.TrustReportFile), () => _result is not null);
         StartOverCommand = new RelayCommand(() => GoTo(WizardStep.Options), () => Current == WizardStep.Done);
         TranslateCommand = new RelayCommand(() => OpenTranslator?.Invoke(_result?.CodebookFile));
+        SaveRulesCommand = new RelayCommand(SaveRules, () => _plan is not null && !IsBusy);
+        LoadRulesCommand = new RelayCommand(LoadRules, () => _plan is not null && !IsBusy);
+        ColumnsView = CollectionViewSource.GetDefaultView(Columns);
+        ColumnsView.Filter = o => o is ColumnRow r && MatchesFilter(r);
     }
 
     public IReadOnlyList<StepItem> Steps { get; }
@@ -110,6 +118,10 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
     public RelayCommand StartOverCommand { get; }
 
     public RelayCommand TranslateCommand { get; }
+
+    public RelayCommand SaveRulesCommand { get; }
+
+    public RelayCommand LoadRulesCommand { get; }
 
     /// <summary>Set by the window: opens the Translate DAX tool, optionally with a codebook.</summary>
     public Action<string?>? OpenTranslator { get; set; }
@@ -190,6 +202,27 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
 
     // ---------- Scan ----------
     public ObservableCollection<ColumnRow> Columns { get; } = [];
+
+    /// <summary>The Scan grid, filtered by <see cref="ColumnFilter"/>.</summary>
+    public ICollectionView ColumnsView { get; }
+
+    public string ColumnFilter
+    {
+        get => _columnFilter;
+        set
+        {
+            if (Set(ref _columnFilter, value))
+            {
+                ColumnsView.Refresh();
+            }
+        }
+    }
+
+    public string RulesStatus
+    {
+        get => _rulesStatus;
+        private set => Set(ref _rulesStatus, value);
+    }
 
     public string ScanSummary => _plan is null ? string.Empty
         : $"{Columns.Select(c => c.Table).Distinct().Count()} tables · {Columns.Count} columns · {Columns.Count(c => c.Rule != Rule.Keep)} will be anonymized";
@@ -499,6 +532,59 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    private bool MatchesFilter(ColumnRow r)
+    {
+        var f = ColumnFilter.Trim();
+        return f.Length == 0
+            || r.Table.Contains(f, StringComparison.OrdinalIgnoreCase)
+            || r.Column.Contains(f, StringComparison.OrdinalIgnoreCase)
+            || r.Detected.Contains(f, StringComparison.OrdinalIgnoreCase)
+            || r.Rule.ToString().Contains(f, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void SaveRules()
+    {
+        var dialog = new SaveFileDialog
+        {
+            Filter = "PbiTwin rules (*.pbitwin-rules.json)|*.pbitwin-rules.json",
+            FileName = (_session?.Project.Name ?? "model") + ".pbitwin-rules.json",
+            Title = "Save rules (column names and rules only, no data)",
+        };
+        if (dialog.ShowDialog() == true)
+        {
+            File.WriteAllText(dialog.FileName, RulesFile.Save(_plan!));
+            RulesStatus = "Rules saved to " + dialog.FileName;
+        }
+    }
+
+    private void LoadRules()
+    {
+        var dialog = new OpenFileDialog { Filter = "PbiTwin rules (*.pbitwin-rules.json)|*.pbitwin-rules.json", Title = "Load rules" };
+        if (dialog.ShowDialog() != true)
+        {
+            return;
+        }
+
+        try
+        {
+            var result = RulesFile.Apply(_plan!, File.ReadAllText(dialog.FileName));
+            foreach (var row in Columns)
+            {
+                row.Refresh();
+            }
+
+            Raise(nameof(ScanSummary));
+            RulesStatus = $"{result.Applied} rules applied."
+                + (result.NotInFile.Count > 0 ? $" {result.NotInFile.Count} new columns keep their detected rule." : string.Empty)
+                + (result.NotInModel.Count > 0 ? $" {result.NotInModel.Count} columns from the file are no longer in the model." : string.Empty)
+                + (result.Rejected.Count > 0 ? $" Rejected: {string.Join(", ", result.Rejected)}." : string.Empty);
+        }
+        catch (Exception ex) when (ex is IOException or InvalidDataException or System.Text.Json.JsonException or ArgumentException)
+        {
+            Error = "Could not load the rules: " + ex.Message;
         }
     }
 

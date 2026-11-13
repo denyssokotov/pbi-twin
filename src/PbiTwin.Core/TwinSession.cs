@@ -185,7 +185,9 @@ public sealed class TwinSession
 
         // 3. Copy the project, point it at the CSVs, strip sources, rewrite literals.
         progress?.Report(new TwinProgress("Writing project", null, 100));
-        var literals = new LiteralRewriter(anonymizer.KnownText, names);
+        var literals = new LiteralRewriter(anonymizer.KnownText, names, (table, column) =>
+            plan.Columns.FirstOrDefault(p => p.Column.Name.Equals(column, StringComparison.OrdinalIgnoreCase)
+                && (table is null || p.Column.Table.Equals(table, StringComparison.OrdinalIgnoreCase)))?.Rule);
         twin.CopyProject(Project);
         ModelRewriter.Rewrite(database.Model, Model, twin.DataFolder, literals, options.ClearDescriptions || map is not null, names);
         if (map is not null)

@@ -16,9 +16,15 @@ public sealed partial class LiteralRewriter
     private readonly Dictionary<string, Dictionary<Domain, string>> _knownIgnoreCase;
     private readonly TextMatcher _matcher;
     private readonly INames _names;
+    private readonly Func<string?, string, Rule?>? _ruleOf;
 
-    public LiteralRewriter(IReadOnlyDictionary<string, Dictionary<Domain, string>> knownText, INames? names = null)
+    /// <param name="knownText">Original text values and their pseudonyms.</param>
+    /// <param name="names">Twin names, for messages.</param>
+    /// <param name="ruleOf">Rule of a column (table may be null), to warn about numbers compared with changed columns.</param>
+    public LiteralRewriter(IReadOnlyDictionary<string, Dictionary<Domain, string>> knownText, INames? names = null,
+        Func<string?, string, Rule?>? ruleOf = null)
     {
+        _ruleOf = ruleOf;
         ArgumentNullException.ThrowIfNull(knownText);
         _known = knownText;
         _names = names ?? IdentityNames.Instance;
@@ -38,6 +44,10 @@ public sealed partial class LiteralRewriter
 
     [GeneratedRegex(@"^[\s=<>!{}(),;&|]*(?:(?:NOT\s+)?IN\b[\s{(]*)?$", RegexOptions.IgnoreCase)]
     private static partial Regex OperatorsOnly();
+
+    /// <summary>A comparison with a number right after a column reference: <c>= 42</c>, <c>&gt; 1000</c>, <c>IN { 1</c>.</summary>
+    [GeneratedRegex(@"^\s*(?:==?|<>|<=|>=|<|>|IN\s*\{)\s*-?\d", RegexOptions.IgnoreCase)]
+    private static partial Regex NumberComparison();
 
     [GeneratedRegex(@"([A-Za-z_][A-Za-z0-9_.]*)$")]
     private static partial Regex TrailingIdentifier();
@@ -67,6 +77,12 @@ public sealed partial class LiteralRewriter
                     if (DateLiteral().IsMatch(t.Raw))
                     {
                         Warn($"{location} contains a hard-coded date; dates in the twin are shifted, so review this expression.");
+                    }
+
+                    if (context is { } ctx && NumberComparison().IsMatch(t.Raw)
+                        && _ruleOf?.Invoke(ctx.Table, ctx.Column) is Rule.Key or Rule.Money or Rule.Quantity)
+                    {
+                        Warn($"{location} compares a hard-coded number with a column whose values changed in the twin; the result will differ.");
                     }
 
                     if (!OperatorsOnly().IsMatch(t.Raw))
