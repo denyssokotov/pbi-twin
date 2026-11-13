@@ -20,8 +20,12 @@ public sealed class AdomdTableReader : ITableReader, IDisposable
     {
         ArgumentNullException.ThrowIfNull(table);
         using var cmd = Command($"EVALUATE ROW(\"n\", COUNTROWS({Dax.Table(table.Name)}))");
-        var result = cmd.ExecuteScalar();
-        return result is null or DBNull ? 0 : Convert.ToInt64(result, System.Globalization.CultureInfo.InvariantCulture);
+
+        // AdomdCommand.ExecuteScalar is not implemented (always NotSupportedException), so read the single row.
+        using var reader = cmd.ExecuteReader();
+        return reader.Read() && reader.GetValue(0) is { } v and not DBNull
+            ? Convert.ToInt64(v, System.Globalization.CultureInfo.InvariantCulture)
+            : 0;
     }
 
     public IEnumerable<object?[]> ReadRows(TableInfo table, IReadOnlyList<ColumnInfo> columns, long? limit = null)
