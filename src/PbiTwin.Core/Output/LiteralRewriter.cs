@@ -129,6 +129,20 @@ public sealed partial class LiteralRewriter
     {
         ArgumentNullException.ThrowIfNull(value);
 
+        // Images are stored inline as data URIs (button backgrounds, logos). Their base64 text is not data, and a
+        // "word" replaced inside it would corrupt the picture.
+        if (value.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+        {
+            return value;
+        }
+
+        // A filter on a column that PbiTwin does not change (rule Keep, number, ...) keeps its literal, even if
+        // another column happens to hold the same word.
+        if (column is not null && _known.TryGetValue(value, out var owners) && !OwnedBy(owners, table, column))
+        {
+            return value;
+        }
+
         var exact = MapExact(value, table, column, location);
         return exact ?? RewriteText(value, location);
     }
@@ -153,6 +167,9 @@ public sealed partial class LiteralRewriter
         return result;
     }
 
+    private static bool OwnedBy(Dictionary<Domain, string> owners, string? table, string column) =>
+        owners.Keys.Any(d => d.Columns.Any(c => c.Name == column && (table is null || c.Table == table)));
+
     private string? MapExact(string value, string? table, string? column, string location, bool countIt = true, bool warnWhenAmbiguous = true)
     {
         if (!_known.TryGetValue(value, out var byDomain) && !_knownIgnoreCase.TryGetValue(value, out byDomain))
@@ -176,7 +193,7 @@ public sealed partial class LiteralRewriter
                 match = byDomain.OrderBy(kv => kv.Key.Id, StringComparer.Ordinal).First().Value;
                 if (warnWhenAmbiguous)
                 {
-                    Warn($"{location}: a literal matches values of several columns ({string.Join(", ", byDomain.Keys.SelectMany(d => d.Columns).Select(_names.Id))}); the first mapping was used.");
+                    Warn($"{location}: a literal matches values of several columns ({string.Join(", ", byDomain.Keys.SelectMany(d => d.Columns).Select(_names.Id))}) and its own column is {(column is null ? "unknown" : "'" + column + "'")}; the first mapping was used.");
                 }
             }
 

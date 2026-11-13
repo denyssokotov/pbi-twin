@@ -186,6 +186,37 @@ public class RewriterTests
     }
 
     [Fact]
+    public void Inline_images_and_filters_on_unchanged_columns_are_left_alone()
+    {
+        var lit = new LiteralRewriter(Known());
+        var image = "data:image/png;base64,iVBORw0KGgo+Kyiv/Other+Kyiv=";
+
+        Assert.Equal(image, lit.MapLiteral(image, null, null, "visual.json"));
+        Assert.Equal(image, lit.RewriteDax($"\"{image}\"", "m").Trim('"'));
+
+        // "Kyiv" is a value of DimStore[City]; a filter on an unrelated column keeps it as is.
+        Assert.Equal("Kyiv", lit.MapLiteral("Kyiv", null, "Notes", "visual.json"));
+        Assert.NotEqual("Kyiv", lit.MapLiteral("Kyiv", null, "City", "visual.json"));
+        Assert.Empty(lit.Warnings);
+    }
+
+    [Fact]
+    public void Leak_scan_ignores_base64_images()
+    {
+        var dir = Directory.CreateTempSubdirectory().FullName;
+        try
+        {
+            File.WriteAllText(Path.Combine(dir, "visual.json"), "{ \"url\": \"'data:image/png;base64,AAAA+Kyiv/BBBB'\" }\n");
+
+            Assert.Empty(LeakScanner.Scan(dir, Known()).Findings);
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Leak_scan_ignores_syntax_literals_such_as_true_and_false()
     {
         var dir = Directory.CreateTempSubdirectory().FullName;

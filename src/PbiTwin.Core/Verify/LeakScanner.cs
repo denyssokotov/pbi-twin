@@ -18,6 +18,10 @@ public static partial class LeakScanner
     [GeneratedRegex("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")]
     private static partial Regex Guid();
 
+    // Inline images (button backgrounds): base64 text is not data.
+    [GeneratedRegex("base64,[A-Za-z0-9+/=]+")]
+    private static partial Regex Base64();
+
     private const string CellDelimiters = ",;\"\t|'";
 
     private static readonly HashSet<string> TextExtensions = new(StringComparer.OrdinalIgnoreCase)
@@ -82,6 +86,11 @@ public static partial class LeakScanner
                 if (ignoredText is not null)
                 {
                     line = line.Replace(ignoredText, new string(' ', ignoredText.Length), StringComparison.OrdinalIgnoreCase);
+                }
+
+                if (line.Contains("base64,", StringComparison.Ordinal))
+                {
+                    line = Base64().Replace(line, x => new string(' ', x.Length));
                 }
 
                 var matches = matcher.Find(line).ToList();
