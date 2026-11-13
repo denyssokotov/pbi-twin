@@ -406,15 +406,37 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
-            Error = ex.Message;
             if (Current == WizardStep.Run)
             {
                 GoTo(WizardStep.Preview);
             }
+
+            // After GoTo, which clears the previous error.
+            Error = Describe(ex);
         }
     }
 
     private void Back() => GoTo(Current == WizardStep.Done ? WizardStep.Options : Current - 1);
+
+    /// <summary>The message plus inner causes (ADOMD and TOM wrap the useful part). Messages can contain model values, so this is shown, never written to disk.</summary>
+    private static string Describe(Exception ex)
+    {
+        var parts = new List<string>();
+        for (var e = ex; e is not null; e = e.InnerException!)
+        {
+            if (!parts.Contains(e.Message))
+            {
+                parts.Add(e.Message);
+            }
+
+            if (e.InnerException is null)
+            {
+                break;
+            }
+        }
+
+        return string.Join(" → ", parts);
+    }
 
     private void GoTo(WizardStep step)
     {
