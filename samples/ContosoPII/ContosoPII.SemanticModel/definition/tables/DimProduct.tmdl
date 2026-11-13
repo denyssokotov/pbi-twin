@@ -1,0 +1,47 @@
+table DimProduct
+
+	column ProductKey
+		dataType: int64
+		isKey
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: ProductKey
+
+	column ProductName
+		dataType: string
+		summarizeBy: none
+		sourceColumn: ProductName
+
+	column Category
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Category
+
+	column Subcategory
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Subcategory
+
+	column Brand
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Brand
+
+	column UnitCost
+		dataType: decimal
+		formatString: #,0.00
+		summarizeBy: none
+		sourceColumn: UnitCost
+
+	partition DimProduct = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents(DataFolder & "\DimProduct.csv"), [Delimiter=",", Columns=6, Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+				    Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    Typed = Table.TransformColumnTypes(Promoted, {{"ProductKey", Int64.Type}, {"ProductName", type text}, {"Category", type text}, {"Subcategory", type text}, {"Brand", type text}, {"UnitCost", Currency.Type}}, "en-US")
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table
+

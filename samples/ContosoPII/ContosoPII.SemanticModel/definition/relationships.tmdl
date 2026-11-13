@@ -1,0 +1,25 @@
+relationship 88e421f5-fc63-46bb-b743-94ed4eda5ac9
+	fromColumn: FactSales.CustomerKey
+	toColumn: DimCustomer.CustomerKey
+
+relationship 2e2cc390-ec4f-4a0a-8401-5a3506f59376
+	fromColumn: FactSales.ProductKey
+	toColumn: DimProduct.ProductKey
+
+relationship 87a1c4c0-16ae-41f0-b226-3a8db8798ef1
+	fromColumn: FactSales.StoreKey
+	toColumn: DimStore.StoreKey
+
+relationship fc50337c-0755-414d-99e4-7a1ea3a33784
+	fromColumn: FactSales.EmployeeKey
+	toColumn: DimEmployee.EmployeeKey
+
+relationship c3031cc5-ac30-442d-b1ea-c395a5c3471f
+	fromColumn: FactSales.OrderDate
+	toColumn: DimDate.Date
+
+relationship b9866dd0-b44e-444a-9728-aa642c8cc25e
+	isActive: false
+	fromColumn: FactSales.ShipDate
+	toColumn: DimDate.Date
+

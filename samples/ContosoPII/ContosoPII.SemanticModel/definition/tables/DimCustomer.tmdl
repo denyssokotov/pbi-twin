@@ -1,0 +1,64 @@
+table DimCustomer
+
+	column CustomerKey
+		dataType: int64
+		isKey
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: CustomerKey
+
+	column FullName
+		dataType: string
+		summarizeBy: none
+		sourceColumn: FullName
+
+	column Email
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Email
+
+	column Phone
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Phone
+
+	column City
+		dataType: string
+		dataCategory: City
+		summarizeBy: none
+		sourceColumn: City
+
+	column Country
+		dataType: string
+		dataCategory: Country
+		summarizeBy: none
+		sourceColumn: Country
+
+	column Address
+		dataType: string
+		dataCategory: Address
+		summarizeBy: none
+		sourceColumn: Address
+
+	column IBAN
+		dataType: string
+		summarizeBy: none
+		sourceColumn: IBAN
+
+	column Segment
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Segment
+
+	partition DimCustomer = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents(DataFolder & "\DimCustomer.csv"), [Delimiter=",", Columns=9, Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+				    Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    Typed = Table.TransformColumnTypes(Promoted, {{"CustomerKey", Int64.Type}, {"FullName", type text}, {"Email", type text}, {"Phone", type text}, {"City", type text}, {"Country", type text}, {"Address", type text}, {"IBAN", type text}, {"Segment", type text}}, "en-US")
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table
+

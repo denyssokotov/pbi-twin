@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>PbiTwin.SampleGenerator</RootNamespace>
+    <!-- Sample-only tool: string literals with fake PII are the whole point. -->
+    <NoWarn>$(NoWarn);CA1303;CA1305;CA1861</NoWarn>
+  </PropertyGroup>
+
+</Project>

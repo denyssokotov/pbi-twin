@@ -1,0 +1,130 @@
+table FactSales
+
+	measure Revenue = SUM(FactSales[SalesAmount])
+		formatString: #,0
+
+	measure Cost = SUM(FactSales[CostAmount])
+		formatString: #,0
+
+	measure Margin = [Revenue] - [Cost]
+		formatString: #,0
+
+	measure 'Margin %' = DIVIDE([Margin], [Revenue])
+		formatString: 0.0%
+
+	measure Orders = DISTINCTCOUNT(FactSales[OrderNumber])
+		formatString: #,0
+
+	measure AOV = DIVIDE([Revenue], [Orders])
+		formatString: #,0.00
+
+	measure 'Revenue YoY %' =
+			VAR PrevYear = CALCULATE([Revenue], SAMEPERIODLASTYEAR(DimDate[Date]))
+			RETURN DIVIDE([Revenue] - PrevYear, PrevYear)
+		formatString: 0.0%
+
+	/// Hard-coded literal: a twin must rewrite "Enterprise" consistently or this measure breaks.
+	measure 'Enterprise Revenue' = CALCULATE([Revenue], DimCustomer[Segment] = "Enterprise")
+		formatString: #,0
+
+	/// Hard-coded literal pointing at a real city.
+	measure 'Kyiv Stores Revenue' = CALCULATE([Revenue], DimStore[City] = "Kyiv")
+		formatString: #,0
+
+	column OrderNumber
+		dataType: string
+		summarizeBy: none
+		sourceColumn: OrderNumber
+
+	column OrderDate
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		summarizeBy: none
+		sourceColumn: OrderDate
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column ShipDate
+		dataType: dateTime
+		formatString: yyyy-mm-dd
+		summarizeBy: none
+		sourceColumn: ShipDate
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column CustomerKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: CustomerKey
+
+	column ProductKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: ProductKey
+
+	column StoreKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: StoreKey
+
+	column EmployeeKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: EmployeeKey
+
+	column Quantity
+		dataType: int64
+		formatString: #,0
+		summarizeBy: sum
+		sourceColumn: Quantity
+
+	column UnitPrice
+		dataType: decimal
+		formatString: #,0.00
+		summarizeBy: none
+		sourceColumn: UnitPrice
+
+	column Discount
+		dataType: double
+		formatString: 0%
+		summarizeBy: none
+		sourceColumn: Discount
+
+	column SalesAmount
+		dataType: decimal
+		formatString: #,0.00
+		summarizeBy: sum
+		sourceColumn: SalesAmount
+
+	column CostAmount
+		dataType: decimal
+		formatString: #,0.00
+		summarizeBy: sum
+		sourceColumn: CostAmount
+
+	column Comment
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Comment
+
+	column 'Line Margin' = FactSales[SalesAmount] - FactSales[CostAmount]
+		dataType: decimal
+		formatString: #,0.00
+		summarizeBy: sum
+
+	partition FactSales = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents(DataFolder & "\FactSales.csv"), [Delimiter=",", Columns=13, Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+				    Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    Typed = Table.TransformColumnTypes(Promoted, {{"OrderNumber", type text}, {"OrderDate", type date}, {"ShipDate", type date}, {"CustomerKey", Int64.Type}, {"ProductKey", Int64.Type}, {"StoreKey", Int64.Type}, {"EmployeeKey", Int64.Type}, {"Quantity", Int64.Type}, {"UnitPrice", Currency.Type}, {"Discount", type number}, {"SalesAmount", Currency.Type}, {"CostAmount", Currency.Type}, {"Comment", type text}}, "en-US")
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table
+

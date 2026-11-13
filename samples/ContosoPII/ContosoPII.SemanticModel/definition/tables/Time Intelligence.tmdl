@@ -1,0 +1,25 @@
+table 'Time Intelligence'
+
+	calculationGroup
+		precedence: 1
+
+		calculationItem Current = SELECTEDMEASURE()
+
+		calculationItem YTD = CALCULATE(SELECTEDMEASURE(), DATESYTD(DimDate[Date]))
+
+		calculationItem PY = CALCULATE(SELECTEDMEASURE(), SAMEPERIODLASTYEAR(DimDate[Date]))
+
+	column 'Time Calculation'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Name
+		sortByColumn: Ordinal
+
+	column Ordinal
+		dataType: int64
+		formatString: 0
+		summarizeBy: sum
+		sourceColumn: Ordinal
+
+	partition 'Time Intelligence' = calculationGroup
+

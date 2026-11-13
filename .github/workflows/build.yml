@@ -30,3 +30,9 @@ jobs:
 
       - name: Test
         run: dotnet test --configuration Release --no-build --logger "console;verbosity=normal"
+
+      - name: Sample data is deterministic across platforms
+        shell: bash
+        run: |
+          dotnet run --configuration Release --no-build --project samples/generator
+          cd samples/ContosoPII/data && sha256sum -c ../data.sha256

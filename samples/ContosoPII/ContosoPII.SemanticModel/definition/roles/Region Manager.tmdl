@@ -1,0 +1,5 @@
+role 'Region Manager'
+	modelPermission: read
+
+	tablePermission DimStore = DimStore[Region] = "West"
+

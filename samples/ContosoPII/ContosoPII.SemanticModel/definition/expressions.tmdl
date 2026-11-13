@@ -1,0 +1,10 @@
+/// Folder with the generated CSV files. Set it to <repo>\samples\ContosoPII\data on your machine.
+expression DataFolder = "C:\pbi-twin\samples\ContosoPII\data" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+
+	annotation PBI_ResultType = Text
+
+/// Not used by any table. Simulates a leftover production connection that must not leak into a twin.
+expression LegacyServer = "sql-prod-07.contoso-pii.local" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=false]
+
+	annotation PBI_ResultType = Text
+

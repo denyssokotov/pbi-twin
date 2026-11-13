@@ -1,0 +1,53 @@
+table DimEmployee
+
+	column EmployeeKey
+		dataType: int64
+		isKey
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: EmployeeKey
+
+	column FullName
+		dataType: string
+		summarizeBy: none
+		sourceColumn: FullName
+
+	column Email
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Email
+
+	column Salary
+		dataType: decimal
+		formatString: #,0.00
+		summarizeBy: sum
+		sourceColumn: Salary
+
+	/// Self-reference to EmployeeKey without a relationship: must stay consistent with EmployeeKey in a twin.
+	column ManagerKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: ManagerKey
+
+	column Region
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Region
+
+	column ManagerPath = PATH(DimEmployee[EmployeeKey], DimEmployee[ManagerKey])
+		dataType: string
+		summarizeBy: none
+
+	partition DimEmployee = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents(DataFolder & "\DimEmployee.csv"), [Delimiter=",", Columns=6, Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+				    Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    Typed = Table.TransformColumnTypes(Promoted, {{"EmployeeKey", Int64.Type}, {"FullName", type text}, {"Email", type text}, {"Salary", Currency.Type}, {"ManagerKey", Int64.Type}, {"Region", type text}}, "en-US")
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table
+

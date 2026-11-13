@@ -1,0 +1,37 @@
+table DimStore
+
+	column StoreKey
+		dataType: int64
+		isKey
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: StoreKey
+
+	column StoreName
+		dataType: string
+		summarizeBy: none
+		sourceColumn: StoreName
+
+	column City
+		dataType: string
+		dataCategory: City
+		summarizeBy: none
+		sourceColumn: City
+
+	column Region
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Region
+
+	partition DimStore = m
+		mode: import
+		source =
+				let
+				    Source = Csv.Document(File.Contents(DataFolder & "\DimStore.csv"), [Delimiter=",", Columns=4, Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+				    Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),
+				    Typed = Table.TransformColumnTypes(Promoted, {{"StoreKey", Int64.Type}, {"StoreName", type text}, {"City", type text}, {"Region", type text}}, "en-US")
+				in
+				    Typed
+
+	annotation PBI_ResultType = Table
+
