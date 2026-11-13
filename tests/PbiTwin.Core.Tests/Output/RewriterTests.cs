@@ -137,13 +137,13 @@ public class RewriterTests
         var dir = Directory.CreateTempSubdirectory().FullName;
         try
         {
-            File.WriteAllText(Path.Combine(dir, "visual.json"), "{ \"Value\": \"'Kyiv'\", \"Other\": 1 }\n");
+            File.WriteAllText(Path.Combine(dir, "visual.json"), "{ \"Value\": \"'Kyiv'\", \"Count\": 1 }\n");
             File.WriteAllText(Path.Combine(dir, "data.csv"), "id,city\n1,Kyiv\n");
 
             var findings = LeakScanner.Scan(dir, Known()).Findings;
 
             var json = Assert.Single(findings, f => f.File == "visual.json");
-            Assert.Equal("{ \"Value\": \"'‹value›'\", \"Other\": 1 }", json.Context);
+            Assert.Equal("{ \"Value\": \"'‹value›'\", \"Count\": 1 }", json.Context);
             Assert.Null(Assert.Single(findings, f => f.File == "data.csv").Context);
         }
         finally
