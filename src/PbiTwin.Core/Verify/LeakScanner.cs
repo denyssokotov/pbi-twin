@@ -104,7 +104,14 @@ public static partial class LeakScanner
 
                     if (to - from > m.Pattern.Length)
                     {
-                        partial.Add((finding, line[from..to].Trim()));
+                        var token = line[from..to].Trim();
+                        if (m.Pattern.All(char.IsAsciiDigit) && token.All(c => char.IsAsciiDigit(c) || ".,-+:/ TZ".Contains(c, StringComparison.Ordinal)))
+                        {
+                            // A digit-only original inside a number or date (12.4821 contains 4821) is a coincidence.
+                            continue;
+                        }
+
+                        partial.Add((finding, token));
                     }
                     else
                     {

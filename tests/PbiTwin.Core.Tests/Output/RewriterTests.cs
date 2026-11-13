@@ -163,7 +163,7 @@ public class RewriterTests
         try
         {
             // 48213 was an employee ID; ID-48213 is somebody else's pseudonym. 4234 is a segment of a GUID.
-            File.WriteAllText(Path.Combine(dir, "a.csv"), "ID-48213,12\nID-99001,7\n");
+            File.WriteAllText(Path.Combine(dir, "a.csv"), "ID-48213,12\nID-99001,7.4234\n2024-04-23,3.48213\n");
             File.WriteAllText(Path.Combine(dir, "b.tmdl"), "table LocalDateTable_3f66fe14-95ad-4234-a00a-67aad7749326\n");
             var domain = new Domain("emp", Rule.Key);
             domain.Columns.Add(new ColumnInfo("Emp", "EmployeeId", ColumnType.Text, "EmployeeId", true, false, null, false));
