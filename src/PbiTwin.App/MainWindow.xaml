@@ -1,0 +1,12 @@
+<Window x:Class="PbiTwin.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="PbiTwin" Height="640" Width="1000"
+        Background="White" FontFamily="Segoe UI" FontSize="13">
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Background="#F3F5F8" Padding="12,6">
+            <TextBlock Foreground="#475467" Text="🔒 Offline · no network calls · open source" />
+        </Border>
+        <TextBlock Margin="24" FontSize="20" Text="PbiTwin (work in progress)" />
+    </DockPanel>
+</Window>

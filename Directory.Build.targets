@@ -1,0 +1,6 @@
+<Project>
+  <!-- The SDK adds 'global using System.Net.Http;' by default. PbiTwin never touches the network, so drop it. -->
+  <ItemGroup>
+    <Using Remove="System.Net.Http" />
+  </ItemGroup>
+</Project>

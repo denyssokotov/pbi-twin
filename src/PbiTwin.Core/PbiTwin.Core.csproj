@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>PbiTwin.Core</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AnalysisServices" />
+    <PackageReference Include="Microsoft.AnalysisServices.AdomdClient" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="PbiTwin.Core.Tests" />
+  </ItemGroup>
+
+</Project>

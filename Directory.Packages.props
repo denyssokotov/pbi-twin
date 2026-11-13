@@ -1,0 +1,16 @@
+<Project>
+  <!--
+    The complete list of allowed third-party packages. Adding anything here needs maintainer approval
+    and is enforced by tests/PbiTwin.Core.Tests/Guards/DependencyAllowlistTests.cs.
+  -->
+  <ItemGroup>
+    <!-- Runtime: official Microsoft Analysis Services clients. -->
+    <PackageVersion Include="Microsoft.AnalysisServices" Version="19.118.3" />
+    <PackageVersion Include="Microsoft.AnalysisServices.AdomdClient" Version="19.118.3" />
+
+    <!-- Tests only. -->
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.12.0" />
+  </ItemGroup>
+</Project>
