@@ -114,6 +114,7 @@ public sealed class TwinSession
         // 1. One-to-one dictionaries from all distinct values (fact tables read only DISTINCT of their keys).
         progress?.Report(new TwinProgress("Building key mappings", null, 0));
         var distinct = new Dictionary<string, HashSet<object>>(StringComparer.Ordinal);
+        var inRelationship = Model.Relationships.SelectMany(r => new[] { r.FromId, r.ToId }).ToHashSet(StringComparer.Ordinal);
         foreach (var domain in plan.Domains.Where(d => Rules.UsesDictionary(d.Rule)))
         {
             cancellation.ThrowIfCancellationRequested();
@@ -121,7 +122,12 @@ public sealed class TwinSession
             foreach (var c in domain.Columns)
             {
                 var set = _reader.ReadDistinct(c).ToHashSet();
-                distinct[c.Id] = set;
+                if (inRelationship.Contains(c.Id))
+                {
+                    // Kept only to count unmatched keys in the original; everything else is released right away.
+                    distinct[c.Id] = set;
+                }
+
                 all.UnionWith(set);
             }
 

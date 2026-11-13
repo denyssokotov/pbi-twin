@@ -72,6 +72,9 @@ and [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md) for the algorithms.
 - Windows and Power BI Desktop only. Models in the Power BI Service (XMLA) are not supported yet.
 - The twin's data is CSV in Import mode; DirectQuery behaviour and performance are not reproduced.
 - Classification is heuristic. Always review the Scan step.
+- Size: data is streamed, but every distinct original text value of anonymized columns is kept in memory for
+  one-to-one mapping and the leak scan — about 0.5 GB per million distinct identifiers (e.g. order numbers).
+  A 2-million-row fact table takes ~20 seconds on a laptop. For very large models, use the fact row limit.
 - Hard-coded numbers in DAX (e.g. `[Revenue] > 1000000`) and hard-coded dates are not rewritten; date literals are flagged in the trust report.
 - Names are kept unless you turn on renaming. Without it, a value used as a name (e.g. a measure called *Kyiv Revenue*) is reported as a leak.
 - When renaming, names that DAX creates itself (e.g. `"Year"` in `ADDCOLUMNS` inside a calculated table) stay as they are. Calculation item names and field-parameter labels are not renamed.
