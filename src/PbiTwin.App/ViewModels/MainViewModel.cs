@@ -435,7 +435,18 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
             }
         }
 
-        return string.Join(" → ", parts);
+        // Type and the first stack frames (method names only) tell where it failed.
+        var inner = ex;
+        while (inner.InnerException is not null)
+        {
+            inner = inner.InnerException;
+        }
+
+        var frames = (inner.StackTrace ?? string.Empty)
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Take(6)
+            .Select(f => f.Trim());
+        return string.Join(" → ", parts) + $"\n[{inner.GetType().Name}]\n" + string.Join("\n", frames);
     }
 
     private void GoTo(WizardStep step)
