@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.5
+
+Security
+- The output folder may not be, contain or sit inside the source project; checked on the Options step.
+- Caches (`.abf`, `.pbix`, `.bak`) and symbolic links are not copied; files the leak scan cannot read are reported.
+- A short user-chosen seed is reported as a weakness (only its length is mentioned).
+- Columns that look personal but were kept as they are are listed in the trust report.
+- GitHub Actions are pinned to commit SHAs and run with minimal permissions.
+
+Quality
+- Cyrillic models, empty tables, blank-only columns, quotes and line breaks in CSV, and broken input files are covered by end-to-end tests.
+- The command line has `scan` (show the rules without creating anything) and `--version`, and reports every failure as `error:`.
+- Warnings on screen are capped at 12 (all stay in the trust report); running out of memory explains what to do.
+
 ## 0.1.4
 
 - Inline images (button backgrounds, logos stored as `data:` URIs) are no longer touched; text inside them was being rewritten and the pictures broke.

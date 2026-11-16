@@ -24,7 +24,12 @@ and calls no AI service.
 | Only approved dependencies | [`DependencyAllowlistTests`](../tests/PbiTwin.Core.Tests/Guards/DependencyAllowlistTests.cs) fail if any package outside the list below is added. Versions are pinned; `packages.lock.json` is committed and CI restores in locked mode. |
 | No original values on disk | The only files written are the twin's. The trust report and warnings contain counts and column names, never values. |
 | No leaks in the twin | Every run scans every output file for every original text value (4+ characters) of every anonymized column. |
-| Source is not modified | The project is read; the twin is written to a separate folder. |
+| Source is not modified | The project is read; the twin is written to a separate folder. The output folder may not be, contain or sit inside the project folder (`TwinFolder.EnsureSeparate`, tested), and an existing folder is only replaced if PbiTwin created it. |
+| Caches are not carried over | `.pbi` folders, `*.abf`, `*.pbix`, `*.bak` and symbolic links are never copied. Files that are neither text nor pictures are copied but reported in the trust report, because the leak scan cannot read them. |
+| The seed stays secret | It is random (80 bits from the system generator), shown once, and written nowhere, which a test checks over the whole output. A short user-chosen seed is reported as a weakness. |
+| Kept columns are visible | Columns that look personal (names, emails, phones, IBANs, addresses, free text) but were set to *Keep* are listed in the trust report. |
+| Every connection is guarded | A test fails if any code that opens a connection does not call the localhost guard first. |
+| CI is hardened | GitHub Actions are pinned to commit SHAs, workflows have read-only permissions (the release job alone can write), and a test fails on an unpinned action. |
 | Reproducible build | Deterministic compilation, path mapping, locked packages. |
 
 ## Dependencies
