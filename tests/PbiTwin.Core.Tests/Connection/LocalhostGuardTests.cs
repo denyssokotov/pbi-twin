@@ -43,6 +43,18 @@ public class LocalhostGuardTests
     [InlineData("Data Source=\"localhost:52123\"")]
     [InlineData("Data Source='remote;x'")]
     [InlineData("Data Source=localhost:52123;garbage")]
+    [InlineData("Data Source=localhost:５２１２３")]
+    [InlineData("Data Source=localhost:52123\0;Data Source=remote:1")]
+    [InlineData("Data Source=localhost:52123\nremote")]
+    [InlineData("Data Source=localhost:52 123")]
+    [InlineData("Data Source=localhost :52123")]
+    [InlineData("Data Source=localhost:+52123")]
+    [InlineData("Data Source=localhost:0x1F")]
+    [InlineData("Data Source=127.0.0.1.nip.io:52123")]
+    [InlineData("Data Source=localhost:52123@remote:1")]
+    [InlineData("Data Source=user@localhost:52123")]
+    [InlineData("Data Source=http://localhost:52123")]
+    [InlineData("Data Source=localhost:52123;Extended Properties=x")]
     public void Rejects_anything_else(string? cs)
     {
         Assert.False(LocalhostGuard.IsLocal(cs, out var reason));
@@ -54,6 +66,13 @@ public class LocalhostGuardTests
     {
         Assert.Throws<InvalidOperationException>(() => LocalhostGuard.EnsureLocal("Data Source=remote:1"));
     }
+
+    [Theory]
+    [InlineData("db;Data Source=remote:1")]
+    [InlineData("db;Location=remote:1")]
+    [InlineData("db;Password=x")]
+    public void A_database_name_cannot_smuggle_in_other_settings(string database) =>
+        Assert.Throws<InvalidOperationException>(() => LocalhostGuard.BuildConnectionString(52123, database));
 
     [Fact]
     public void BuildConnectionString_produces_local_string()
