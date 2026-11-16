@@ -54,6 +54,22 @@ public sealed class SeedTests : IDisposable
     }
 
     [Fact]
+    public void Columns_that_look_personal_but_are_kept_are_reported()
+    {
+        var session = new TwinSession(PbipProject.Open(Sample), new CsvTableReader(Path.Combine(Sample, "data"), c => c.SourceColumn));
+        var plan = session.Scan();
+        plan.SetRule("DimCustomer[Email]", Rule.Keep);
+        plan.SetRule("DimCustomer[FullName]", Rule.Keep);
+
+        var result = session.Run(plan, new TwinOptions { Seed = "QZXV-8JKL-7MNP-4RTW" }, Path.Combine(_root, "kept"));
+
+        Assert.Contains(result.Report.Warnings, w => w.Contains("detected as Email were kept", StringComparison.Ordinal) && w.Contains("DimCustomer[Email]", StringComparison.Ordinal));
+        Assert.Contains(result.Report.Warnings, w => w.Contains("detected as PersonName were kept", StringComparison.Ordinal));
+        // The leak scan does not call them leaks: kept values are not "original text values that were anonymized".
+        Assert.True(result.Report.Passed, result.Report.ToMarkdown());
+    }
+
+    [Fact]
     public void Generated_seeds_are_unique_and_well_formed()
     {
         var seeds = Enumerable.Range(0, 2000).Select(_ => SeededHash.NewSeed()).ToList();

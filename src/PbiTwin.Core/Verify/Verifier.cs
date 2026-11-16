@@ -1,5 +1,6 @@
 using System.Globalization;
 using PbiTwin.Core.Anonymize;
+using PbiTwin.Core.Classify;
 using PbiTwin.Core.Extract;
 using PbiTwin.Core.Metadata;
 using PbiTwin.Core.Output;
@@ -132,6 +133,24 @@ public static class Verifier
                 p.Domain.IsShared ? string.Join(", ", p.Domain.Columns.Where(c => c != p.Column).Select(names.Id)) : string.Empty));
         }
 
+        report.Warnings.AddRange(KeptSensitiveColumns(anonymizer.Plan, names));
         return report;
+    }
+
+    private static readonly HashSet<ColumnClass> Sensitive = [ColumnClass.PersonName, ColumnClass.Email, ColumnClass.Phone, ColumnClass.Iban, ColumnClass.Address, ColumnClass.FreeText];
+
+    /// <summary>Columns that look personal but were set to Keep (by the user or by a rule): the twin carries their original values.</summary>
+    public static IEnumerable<string> KeptSensitiveColumns(AnonymizationPlan plan, INames names)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        ArgumentNullException.ThrowIfNull(names);
+
+        foreach (var group in plan.Columns
+                     .Where(p => p.Rule == Rule.Keep && Sensitive.Contains(p.Classification.Class))
+                     .GroupBy(p => p.Classification.Class)
+                     .OrderBy(g => g.Key))
+        {
+            yield return $"{group.Count()} column(s) detected as {group.Key} were kept as they are, so the twin holds their original values: {string.Join(", ", group.Select(p => names.Id(p.Column)).Order(StringComparer.Ordinal).Take(8))}{(group.Count() > 8 ? ", …" : string.Empty)}. Check that this is intended.";
+        }
     }
 }
