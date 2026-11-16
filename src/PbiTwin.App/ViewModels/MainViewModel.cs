@@ -12,6 +12,7 @@ using PbiTwin.Core.Anonymize;
 using PbiTwin.Core.Connection;
 using PbiTwin.Core.Extract;
 using PbiTwin.Core.Metadata;
+using PbiTwin.Core.Output;
 using PbiTwin.Core.Rename;
 using PbiTwin.Core.Verify;
 using Rule = PbiTwin.Core.Anonymize.Rule;
@@ -392,6 +393,18 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
                     GoTo(WizardStep.Options);
                     break;
                 case WizardStep.Options:
+                    // Fail here, not after the preview: these checks need no data.
+                    if (!string.IsNullOrWhiteSpace(TwinName))
+                    {
+                        TwinFolder.ValidateName(TwinName.Trim());
+                    }
+
+                    if (string.IsNullOrWhiteSpace(OutputFolder))
+                    {
+                        throw new ArgumentException("Choose an output folder.");
+                    }
+
+                    TwinFolder.EnsureSeparate(OutputFolder, _session!.Project.RootFolder);
                     var options = BuildOptions();
                     _preview = await Task.Run(() => _session!.Preview(_plan!, options));
                     Raise(nameof(PreviewTables));

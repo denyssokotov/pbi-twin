@@ -51,6 +51,17 @@ public sealed class TwinFolder
         }
     }
 
+    /// <summary>Throws an <see cref="ArgumentException"/> with a readable message if the name cannot be a file name.</summary>
+    public static void ValidateName(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        if (name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || name.IndexOfAny(['\\', '/', ':', '*', '?', '"', '<', '>', '|']) >= 0
+            || name.EndsWith('.') || name.EndsWith(' '))
+        {
+            throw new ArgumentException($"'{name}' cannot be used as a file name. Use letters, digits, spaces, '-' or '_'.", nameof(name));
+        }
+    }
+
     /// <summary>The output must not be, contain or sit inside the input project: it is deleted and rewritten on every run.</summary>
     public static void EnsureSeparate(string outputRoot, string sourceRoot)
     {
@@ -67,13 +78,7 @@ public sealed class TwinFolder
     /// </summary>
     public static TwinFolder Create(string root, string name)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        if (name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || name.IndexOfAny(['\\', '/', ':', '*', '?', '"', '<', '>', '|']) >= 0
-            || name.EndsWith('.') || name.EndsWith(' '))
-        {
-            throw new ArgumentException($"'{name}' cannot be used as a file name. Use letters, digits, spaces, '-' or '_'.", nameof(name));
-        }
-
+        ValidateName(name);
         root = Path.GetFullPath(root);
         if (Directory.Exists(root))
         {

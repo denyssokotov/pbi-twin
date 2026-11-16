@@ -89,6 +89,25 @@ public class TwinFolderTests
         Assert.ThrowsAny<ArgumentException>(() => TwinFolder.Create(Path.Combine(Path.GetTempPath(), "pbitwin-tests", Guid.NewGuid().ToString("N")), name));
 }
 
+public class TwinNameTests
+{
+    [Theory]
+    [InlineData("Sales_Twin")]
+    [InlineData("Звіт продажів")]
+    [InlineData("a-b_c 1")]
+    public void Ordinary_names_are_accepted(string name) => TwinFolder.ValidateName(name);
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("a/b")]
+    [InlineData("a\\b")]
+    [InlineData("what?")]
+    [InlineData("trailing.")]
+    [InlineData("trailing ")]
+    [InlineData("a|b")]
+    public void Names_that_cannot_be_files_are_refused(string name) => Assert.ThrowsAny<ArgumentException>(() => TwinFolder.ValidateName(name));
+}
+
 public class NumberLiteralWarningTests
 {
     [Fact]
