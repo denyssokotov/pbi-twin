@@ -62,7 +62,12 @@ try
         _ => Create(Options(args)),
     };
 }
-catch (Exception ex) when (ex is not OutOfMemoryException)
+catch (OutOfMemoryException)
+{
+    Console.Error.WriteLine("error: not enough memory. Distinct text values are kept in memory (about 0.5 GB per million identifiers); use --rows to limit fact tables.");
+    return 1;
+}
+catch (Exception ex)
 {
     Console.Error.WriteLine("error: " + ex.Message);
     return 1;

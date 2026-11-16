@@ -417,7 +417,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
                     break;
             }
         }
-        catch (Exception ex) when (ex is not OutOfMemoryException)
+        catch (Exception ex)
         {
             if (Current == WizardStep.Run)
             {
@@ -425,7 +425,9 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
             }
 
             // After GoTo, which clears the previous error.
-            Error = Describe(ex);
+            Error = ex is OutOfMemoryException
+                ? "Not enough memory. Every distinct text value is kept in memory for the one-to-one mapping (about 0.5 GB per million distinct identifiers). Go back to Options, set a 'Row limit for fact tables', close other programs and try again."
+                : Describe(ex);
         }
     }
 
