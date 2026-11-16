@@ -93,6 +93,11 @@ public static class Verifier
             report.Warnings.Add($"The output path (stored in the DataFolder parameter) contains a word that is also a value of {string.Join(", ", pathColumns)}. If the path is sensitive, choose another output folder or change the parameter before sharing.");
         }
 
+        if (LeakScanner.UnscannedFiles(twin.Root) is { Count: > 0 } unscanned)
+        {
+            report.Warnings.Add($"{unscanned.Count} file(s) are neither text nor pictures, so the leak scan could not read them. They were copied as they are: {string.Join(", ", unscanned.Take(5))}{(unscanned.Count > 5 ? ", …" : string.Empty)}. Check or delete them before sharing.");
+        }
+
         report.Leaks.AddRange(leaks);
         report.LeakValuesChecked = values;
         report.LeakFilesScanned = files;

@@ -109,6 +109,7 @@ public sealed class TwinSession
         INames names = (INames?)map ?? IdentityNames.Instance;
         var anonymizer = new Anonymizer(plan, options, map is null ? null : d => names.Column(d.Columns[0].Table, d.Columns[0].Name));
         var facts = new RunFacts();
+        TwinFolder.EnsureSeparate(outputFolder, Project.RootFolder);
         var twin = TwinFolder.Create(outputFolder, twinName ?? (map is null ? Project.Name + "_Twin" : "Twin"));
 
         // 1. One-to-one dictionaries from all distinct values (fact tables read only DISTINCT of their keys).

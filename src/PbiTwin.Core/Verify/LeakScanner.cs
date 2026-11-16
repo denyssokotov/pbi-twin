@@ -26,7 +26,7 @@ public static partial class LeakScanner
 
     private static readonly HashSet<string> TextExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".csv", ".tmdl", ".json", ".pbir", ".pbism", ".pbip", ".platform", ".bim", ".dax", ".m", ".txt", ".xml",
+        ".csv", ".tmdl", ".json", ".pbir", ".pbism", ".pbip", ".platform", ".bim", ".dax", ".m", ".txt", ".xml", ".svg",
     };
 
     private static readonly HashSet<string> Syntax = new(["true", "false", "null", "none", "blank"], StringComparer.OrdinalIgnoreCase);
@@ -207,6 +207,21 @@ public static partial class LeakScanner
         var from = Math.Max(0, start - 70);
         var to = Math.Min(text.Length, start + 77);
         return (from > 0 ? "…" : string.Empty) + text[from..to].Trim() + (to < text.Length ? "…" : string.Empty);
+    }
+
+    private static readonly HashSet<string> ImageExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".png", ".jpg", ".jpeg", ".gif", ".ico", ".webp", ".bmp",
+    };
+
+    /// <summary>Files the scan cannot read (neither text nor a picture), as relative paths. They were copied as they are.</summary>
+    public static IReadOnlyList<string> UnscannedFiles(string folder)
+    {
+        return Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories)
+            .Where(f => !TextExtensions.Contains(Path.GetExtension(f)) && !ImageExtensions.Contains(Path.GetExtension(f)) && !Path.GetFileName(f).StartsWith('.'))
+            .Select(f => Path.GetRelativePath(folder, f).Replace('\\', '/'))
+            .Order(StringComparer.Ordinal)
+            .ToList();
     }
 
     /// <summary>Columns whose original values occur in <paramref name="text"/> (e.g. the output path).</summary>

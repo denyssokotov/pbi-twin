@@ -16,6 +16,8 @@ public sealed class TwinFolder
     /// <summary>Folders never copied: local caches (may contain the original data) and ad-hoc query scripts.</summary>
     private static readonly HashSet<string> SkippedFolders = new(StringComparer.OrdinalIgnoreCase) { ".pbi", "DAXQueries", "TMDLScripts" };
 
+    private static readonly HashSet<string> SkippedExtensions = new(StringComparer.OrdinalIgnoreCase) { ".abf", ".pbix", ".bak" };
+
     private TwinFolder(string root, string name)
     {
         Root = root;
@@ -46,6 +48,17 @@ public sealed class TwinFolder
         if (File.Exists(layout))
         {
             File.Delete(layout);
+        }
+    }
+
+    /// <summary>The output must not be, contain or sit inside the input project: it is deleted and rewritten on every run.</summary>
+    public static void EnsureSeparate(string outputRoot, string sourceRoot)
+    {
+        var output = Path.TrimEndingDirectorySeparator(Path.GetFullPath(outputRoot)) + Path.DirectorySeparatorChar;
+        var source = Path.TrimEndingDirectorySeparator(Path.GetFullPath(sourceRoot)) + Path.DirectorySeparatorChar;
+        if (output.StartsWith(source, StringComparison.OrdinalIgnoreCase) || source.StartsWith(output, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("The output folder must be outside the source project folder (and must not contain it). Choose another output folder.");
         }
     }
 
@@ -146,17 +159,23 @@ public sealed class TwinFolder
         }
     }
 
+    private static bool IsLink(string path) => File.GetAttributes(path).HasFlag(FileAttributes.ReparsePoint);
+
     private static void CopyDirectory(string from, string to)
     {
         Directory.CreateDirectory(to);
         foreach (var file in Directory.EnumerateFiles(from))
         {
-            File.Copy(file, Path.Combine(to, Path.GetFileName(file)));
+            // Analysis Services caches hold the original data; links could lead anywhere.
+            if (!SkippedExtensions.Contains(Path.GetExtension(file)) && !IsLink(file))
+            {
+                File.Copy(file, Path.Combine(to, Path.GetFileName(file)));
+            }
         }
 
         foreach (var dir in Directory.EnumerateDirectories(from))
         {
-            if (!SkippedFolders.Contains(Path.GetFileName(dir)))
+            if (!SkippedFolders.Contains(Path.GetFileName(dir)) && !IsLink(dir))
             {
                 CopyDirectory(dir, Path.Combine(to, Path.GetFileName(dir)));
             }

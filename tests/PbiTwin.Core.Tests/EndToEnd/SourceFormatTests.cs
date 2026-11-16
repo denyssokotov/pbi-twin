@@ -140,6 +140,37 @@ public sealed class SourceFormatTests : IDisposable
         Assert.DoesNotContain("Store ", all, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Caches_are_not_copied_and_unreadable_files_are_reported()
+    {
+        var project = CopySample(_ => { }, asBim: false);
+        File.WriteAllBytes(Path.Combine(project, "ContosoPII.SemanticModel", "cache.abf"), [1, 2, 3]);
+        Directory.CreateDirectory(Path.Combine(project, "ContosoPII.Report", "StaticResources"));
+        File.WriteAllBytes(Path.Combine(project, "ContosoPII.Report", "StaticResources", "customers.xlsx"), [1, 2, 3]);
+        File.WriteAllBytes(Path.Combine(project, "ContosoPII.Report", "StaticResources", "logo.png"), [1, 2, 3]);
+
+        var result = Run(project);
+
+        Assert.False(File.Exists(Path.Combine(result.Folder.SemanticModelFolder, "cache.abf")));
+        var warning = Assert.Single(result.Report.Warnings, w => w.Contains("leak scan could not read", StringComparison.Ordinal));
+        Assert.Contains("customers.xlsx", warning, StringComparison.Ordinal);
+        Assert.DoesNotContain("logo.png", warning, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("source", "source")]
+    [InlineData("source", "source/Twin")]
+    [InlineData("source/deep", "source")]
+    public void Output_inside_or_around_the_source_project_is_refused(string source, string output)
+    {
+        var src = Path.Combine(_root, source);
+        Assert.Throws<InvalidOperationException>(() => PbiTwin.Core.Output.TwinFolder.EnsureSeparate(Path.Combine(_root, output), src));
+    }
+
+    [Fact]
+    public void A_sibling_folder_with_a_similar_name_is_fine() =>
+        PbiTwin.Core.Output.TwinFolder.EnsureSeparate(Path.Combine(_root, "source_Twin"), Path.Combine(_root, "source"));
+
     public void Dispose()
     {
         if (Directory.Exists(_root))
