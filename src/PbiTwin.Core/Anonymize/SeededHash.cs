@@ -10,6 +10,9 @@ namespace PbiTwin.Core.Anonymize;
 /// </summary>
 public sealed class SeededHash
 {
+    /// <summary>A generated seed has 19 characters (80 bits); anything much shorter is easier to guess.</summary>
+    public const int RecommendedSeedLength = 12;
+
     private const char Separator = '\u001F';
     private readonly byte[] _key;
 

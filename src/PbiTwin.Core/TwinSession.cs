@@ -214,6 +214,12 @@ public sealed class TwinSession
             report.Warnings.Add($"Names were obfuscated. The codebook ({Path.GetFileName(twin.CodebookFile)}) was saved next to the twin folder, not inside it. Never share it together with the twin.");
         }
 
+        if (options.Seed.Length < SeededHash.RecommendedSeedLength)
+        {
+            // Only the length is mentioned, never the seed itself.
+            report.Warnings.Add($"The seed is short ({options.Seed.Length} characters). Whoever holds the twin could guess it and recompute the pseudonyms of values they suspect are in the data. Use a generated seed (at least {SeededHash.RecommendedSeedLength} characters) for a twin you share.");
+        }
+
         File.WriteAllText(twin.TrustReportFile, report.ToMarkdown(), Csv.Utf8);
 
         return new TwinResult(twin, report, map is null ? null : twin.CodebookFile);
