@@ -106,6 +106,7 @@ and [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md) for the algorithms.
 
 ```
 pbitwin-cli list
+pbitwin-cli scan --pbip C:\Reports\Sales.pbip --port 52123          # show the rules a run would use, create nothing
 pbitwin-cli --pbip C:\Reports\Sales.pbip --port 52123 --out C:\Twins\Sales_Twin --rename semantic --rows 1000000 --rules sales.pbitwin-rules.json
 pbitwin-cli translate --codebook C:\Twins\Twin.codebook.json --to real < measure.dax
 ```

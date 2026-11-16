@@ -28,8 +28,13 @@ const string Usage = """
         --rules <file>    apply rules saved earlier (column names and rules only)
         --save-rules <file>  save the rules used for this run
 
+    Show the rules a run would use, without creating anything:
+      pbitwin-cli scan --pbip <file.pbip|folder> (--port <n> | --csv <folder>) [--rules <file>]
+
     List running Power BI Desktop models:
       pbitwin-cli list
+
+    pbitwin-cli --version
 
     Translate DAX with a codebook (reads stdin, writes stdout):
       pbitwin-cli translate --codebook <file> --to real|twin
@@ -43,9 +48,16 @@ try
         return 0;
     }
 
+    if (args[0] is "--version")
+    {
+        Console.WriteLine(typeof(TwinSession).Assembly.GetName().Version?.ToString(3) ?? "unknown");
+        return 0;
+    }
+
     return args[0] switch
     {
         "list" => List(),
+        "scan" => Scan(Options(args[1..])),
         "translate" => Translate(Options(args[1..])),
         _ => Create(Options(args)),
     };
@@ -99,18 +111,7 @@ static int Create(Dictionary<string, string?> o)
         Console.Error.WriteLine($"seed: {options.Seed}   (not saved anywhere; pass --seed to reproduce)");
     }
 
-    ITableReader reader;
-    if (o.TryGetValue("csv", out var csv))
-    {
-        reader = new CsvTableReader(csv!, c => c.SourceColumn);
-    }
-    else
-    {
-        var port = int.Parse(Required(o, "port"), CultureInfo.InvariantCulture);
-        var model = DesktopInstances.Describe(new DesktopInstance(port, string.Empty));
-        reader = new AdomdTableReader(LocalhostGuard.BuildConnectionString(port, model.DatabaseId));
-    }
-
+    var reader = OpenReader(o);
     try
     {
         var session = new TwinSession(PbipProject.Open(pbip), reader);
@@ -159,6 +160,50 @@ static int Create(Dictionary<string, string?> o)
         }
 
         return result.Report.Passed ? 0 : 2;
+    }
+    finally
+    {
+        (reader as IDisposable)?.Dispose();
+    }
+}
+
+static ITableReader OpenReader(Dictionary<string, string?> o)
+{
+    if (o.TryGetValue("csv", out var csv))
+    {
+        return new CsvTableReader(csv!, c => c.SourceColumn);
+    }
+
+    var port = int.Parse(Required(o, "port"), CultureInfo.InvariantCulture);
+    var model = DesktopInstances.Describe(new DesktopInstance(port, string.Empty));
+    return new AdomdTableReader(LocalhostGuard.BuildConnectionString(port, model.DatabaseId));
+}
+
+static int Scan(Dictionary<string, string?> o)
+{
+    var pbip = Required(o, "pbip");
+    var reader = OpenReader(o);
+    try
+    {
+        var session = new TwinSession(PbipProject.Open(pbip), reader);
+        var plan = session.Scan();
+        if (o.TryGetValue("rules", out var rulesFile))
+        {
+            var applied = RulesFile.Apply(plan, File.ReadAllText(rulesFile!));
+            Console.Error.WriteLine($"rules: {applied.Applied} applied, {applied.NotInFile.Count} new columns, {applied.NotInModel.Count} no longer in the model, {applied.Rejected.Count} rejected");
+        }
+
+        var rows = plan.Columns
+            .OrderBy(p => p.Column.Id, StringComparer.Ordinal)
+            .Select(p => (Column: p.Column.Id, Type: p.Column.Type.ToString(), Detected: $"{p.Classification.Class} ({p.Classification.Confidence})", Rule: p.Rule.ToString(), Shared: p.Domain.IsShared ? "shared" : string.Empty))
+            .ToList();
+        var w = new[] { rows.Max(r => r.Column.Length), rows.Max(r => r.Type.Length), rows.Max(r => r.Detected.Length), rows.Max(r => r.Rule.Length) };
+        foreach (var r in rows)
+        {
+            Console.WriteLine($"{r.Column.PadRight(w[0])}  {r.Type.PadRight(w[1])}  {r.Detected.PadRight(w[2])}  {r.Rule.PadRight(w[3])}  {r.Shared}".TrimEnd());
+        }
+
+        return 0;
     }
     finally
     {

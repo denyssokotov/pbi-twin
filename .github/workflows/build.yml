@@ -45,3 +45,5 @@ jobs:
           dotnet run --configuration Release --no-build --project src/PbiTwin.Cli -- \
             --pbip samples/ContosoPII --csv samples/ContosoPII/data --out "$RUNNER_TEMP/Twin" --rename semantic --seed CI
           test -f "$RUNNER_TEMP/Twin/Twin.pbip" && test -f "$RUNNER_TEMP/Twin.codebook.json"
+          dotnet run --configuration Release --no-build --project src/PbiTwin.Cli -- \
+            scan --pbip samples/ContosoPII --csv samples/ContosoPII/data | grep -q "DimCustomer\[Email\]"
