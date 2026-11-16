@@ -62,7 +62,7 @@ try
         _ => Create(Options(args)),
     };
 }
-catch (Exception ex) when (ex is ArgumentException or IOException or InvalidOperationException or FormatException or InvalidDataException)
+catch (Exception ex) when (ex is not OutOfMemoryException)
 {
     Console.Error.WriteLine("error: " + ex.Message);
     return 1;
