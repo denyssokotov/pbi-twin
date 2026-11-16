@@ -13,7 +13,7 @@ report, but with fake data that keeps the distributions, trends, seasonality and
 
 ### Before and after
 
-Rows from the bundled fake sample (`samples/ContosoPII`), 3 of 2,000 customers, run with the default options:
+Rows from the bundled fake sample (`samples/ContosoPII`), one of 2,000 customers and one of about 196,000 order lines, run with the default options:
 
 | | CustomerKey | FullName | Email | City | Segment |
 |---|---:|---|---|---|---|
@@ -26,7 +26,7 @@ Rows from the bundled fake sample (`samples/ContosoPII`), 3 of 2,000 customers, 
 | twin | ON-049263 | 2024-12-07 | 452 | 83.14 | 79.2 |
 
 Keys, names and dates change, amounts are rescaled, and everything that holds the model together stays intact:
-every order still finds its customer, monthly totals correlate 1.0000 with the original, margins move by less than 0.01%.
+every order still finds its customer, monthly totals correlate 1.0000 with the original, margins move by hundredths of a percent.
 The full [sample trust report](docs/sample/TRUST-REPORT.md) is what every run produces.
 
 - **Offline.** No network calls, no telemetry, no auto-update, no AI. Enforced by a CI check.
