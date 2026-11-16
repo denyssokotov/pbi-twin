@@ -9,16 +9,34 @@ a model by hand is slow and tedious, so nobody does it. PbiTwin does it in a min
 Power BI Desktop, run the wizard, and get a **twin** — the same model, measures, relationships, RLS and
 report, but with fake data that keeps the distributions, trends, seasonality and referential integrity.
 
-![Screenshot placeholder: the Scan step](docs/screenshots/scan.png)
+![PbiTwin: your report stays on your PC, the twin with fake data can be shared](docs/img/flow.svg)
+
+### Before and after
+
+Rows from the bundled fake sample (`samples/ContosoPII`), 3 of 2,000 customers, run with the default options:
+
+| | CustomerKey | FullName | Email | City | Segment |
+|---|---:|---|---|---|---|
+| original | 1 | Serhii Kovalenko | serhii.kovalenko@meta.ua | Kyiv | Consumer |
+| twin | 1506 | Yara Stonebridge | thane.ironside70@example.net | Torford | Segment 02 |
+
+| | OrderNumber | OrderDate | CustomerKey | UnitPrice | SalesAmount |
+|---|---|---|---:|---:|---:|
+| original | SO-2022-000001 | 2022-01-01 | 1347 | 95.24 | 90.48 |
+| twin | ON-049263 | 2024-12-07 | 452 | 83.14 | 79.2 |
+
+Keys, names and dates change, amounts are rescaled, and everything that holds the model together stays intact:
+every order still finds its customer, monthly totals correlate 1.0000 with the original, margins move by less than 0.01%.
+The full [sample trust report](docs/sample/TRUST-REPORT.md) is what every run produces.
 
 - **Offline.** No network calls, no telemetry, no auto-update, no AI. Enforced by a CI check.
-- **Open source (MIT).** About 4,400 lines of core code (with comments) and two official Microsoft packages. Read it in an evening, build it yourself.
+- **Open source (MIT).** About 4,700 lines of core code (with comments) and two official Microsoft packages. Read it in an evening, build it yourself.
 - **Verified.** Every run ends with a trust report: row counts, referential integrity, key uniqueness, a leak scan of every output file, and proof that trends and ratios survived.
 
 ## Quick start
 
 1. Save your report as a **Power BI Project (.pbip)** and keep it open in Power BI Desktop.
-2. Download `PbiTwin.exe` from [Releases](../../releases) (or [build it yourself](#build-from-source)), run it,
+2. Download `PbiTwin.exe` from [Releases](../../releases) (a single file, nothing to install; or [build it yourself](#build-from-source)), run it,
    pick the running model and the `.pbip` file, review the rules, click **Create twin**.
 3. Open `<Name>_Twin.pbip`, *Refresh*, and share the twin folder (never the `.codebook.json` next to it).
 
@@ -79,7 +97,7 @@ and [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md) for the algorithms.
 - Hard-coded numbers and dates in DAX (e.g. `Sales[Amount] > 1000000`, `DATE(2024, 1, 1)`) are not rewritten; the trust report lists every expression where this changes the result.
 - Names are kept unless you turn on renaming. Without it, a value used as a name (e.g. a measure called *Kyiv Revenue*) is reported as a leak.
 - When renaming, names that DAX creates itself (e.g. `"Year"` in `ADDCOLUMNS` inside a calculated table) stay as they are. Calculation item names and field-parameter labels are not renamed.
-- Images in the report (logos, `RegisteredResources`) are copied as-is.
+- Images in the report (logos, button backgrounds, `RegisteredResources`) are copied as-is. A logo that shows your client's name stays in the twin.
 - This is not anonymization in the legal sense (e.g. GDPR). It is a tool for safe development, demos and sharing with AI assistants.
 
 ## Command line

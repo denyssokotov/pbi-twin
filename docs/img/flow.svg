@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 330" role="img" aria-labelledby="t d">
+  <title id="t">How PbiTwin works</title>
+  <desc id="d">A report open in Power BI Desktop goes through PbiTwin on the same computer and becomes a twin with fake data plus a trust report. The twin can be shared; the codebook stays private.</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 10 5 0 10z" fill="#0F766E"/></marker>
+    <style>
+      text{font-family:Segoe UI,Helvetica,Arial,sans-serif;fill:#0f172a}
+      .h{font-size:17px;font-weight:600}.s{font-size:13px;fill:#475569}.b{font-size:12px;fill:#0F766E;font-weight:600}
+      .box{fill:#fff;stroke:#cbd5e1;stroke-width:1.5}.hl{fill:#F0FDFA;stroke:#0F766E;stroke-width:2}
+    </style>
+  </defs>
+  <rect width="960" height="330" rx="14" fill="#f8fafc"/>
+
+  <rect class="box" x="28" y="62" width="240" height="150" rx="12"/>
+  <text class="h" x="48" y="94">Your report</text>
+  <text class="s" x="48" y="118">open in Power BI Desktop</text>
+  <text class="s" x="48" y="146">real customers, real amounts,</text>
+  <text class="s" x="48" y="164">real names, real dates</text>
+  <text class="b" x="48" y="194">stays on your PC</text>
+
+  <rect class="hl" x="350" y="40" width="260" height="194" rx="12"/>
+  <text class="h" x="372" y="74">PbiTwin</text>
+  <text class="s" x="372" y="96">100% offline, no AI, no telemetry</text>
+  <text class="s" x="372" y="128">1  Scan: a rule for every column</text>
+  <text class="s" x="372" y="152">2  Anonymize: keys, names, amounts,</text>
+  <text class="s" x="391" y="170">dates, DAX and report literals</text>
+  <text class="s" x="372" y="194">3  Verify: leak scan of every file</text>
+  <text class="b" x="372" y="220">original values live only in memory</text>
+
+  <rect class="box" x="692" y="40" width="240" height="194" rx="12"/>
+  <text class="h" x="712" y="74">The twin</text>
+  <text class="s" x="712" y="98">same model, measures, relations,</text>
+  <text class="s" x="712" y="116">RLS and report</text>
+  <text class="s" x="712" y="144">fake data with the same trends,</text>
+  <text class="s" x="712" y="162">seasonality and integrity</text>
+  <text class="s" x="712" y="190">+ a trust report with proofs</text>
+  <text class="b" x="712" y="220">safe to share</text>
+
+  <path d="M268 137H346" stroke="#0F766E" stroke-width="2.5" fill="none" marker-end="url(#a)"/>
+  <path d="M610 137H688" stroke="#0F766E" stroke-width="2.5" fill="none" marker-end="url(#a)"/>
+
+  <text class="s" x="28" y="276">Share the twin with an AI assistant, a freelancer or your portfolio.</text>
+  <text class="s" x="28" y="298">Keep the codebook (names only) private: it translates the AI's DAX back to your real model.</text>
+</svg>
