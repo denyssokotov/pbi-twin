@@ -189,5 +189,14 @@ public sealed class TrustReport
         _ => "❌",
     };
 
+    /// <summary>At most <paramref name="max"/> warnings for the screen; the rest are counted, all stay in the report file.</summary>
+    public static IReadOnlyList<string> Condense(IReadOnlyList<string> warnings, int max)
+    {
+        ArgumentNullException.ThrowIfNull(warnings);
+        return warnings.Count <= max
+            ? warnings
+            : [.. warnings.Take(max), string.Create(System.Globalization.CultureInfo.InvariantCulture, $"…and {warnings.Count - max} more warnings; all of them are in TRUST-REPORT.md.")];
+    }
+
     private static string Escape(string s) => s.Replace("|", "\\|", StringComparison.Ordinal).Replace("\n", " ", StringComparison.Ordinal);
 }

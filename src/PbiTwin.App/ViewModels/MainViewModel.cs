@@ -718,7 +718,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
             }
 
             Warnings.Clear();
-            foreach (var w in _result.Report.Warnings)
+            foreach (var w in TrustReport.Condense(_result.Report.Warnings, 12))
             {
                 Warnings.Add(w);
             }

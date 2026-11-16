@@ -217,6 +217,18 @@ public class RewriterTests
     }
 
     [Fact]
+    public void Warnings_shown_on_screen_are_capped_and_counted()
+    {
+        var warnings = Enumerable.Range(1, 30).Select(i => $"w{i}").ToList();
+
+        var shown = PbiTwin.Core.Verify.TrustReport.Condense(warnings, 12);
+
+        Assert.Equal(13, shown.Count);
+        Assert.Contains("18 more", shown[^1], StringComparison.Ordinal);
+        Assert.Equal(5, PbiTwin.Core.Verify.TrustReport.Condense(warnings.Take(5).ToList(), 12).Count);
+    }
+
+    [Fact]
     public void Leak_scan_ignores_syntax_literals_such_as_true_and_false()
     {
         var dir = Directory.CreateTempSubdirectory().FullName;
