@@ -192,23 +192,54 @@ public sealed class Anonymizer
                     return d;
                 }
 
-                var dm = d * (decimal)m;
+                decimal dm;
+                try
+                {
+                    dm = d * (decimal)m;
+                }
+                catch (OverflowException)
+                {
+                    return d > 0 ? decimal.MaxValue : decimal.MinValue;
+                }
+
                 return wholeNumbers ? NonZero(Math.Round(dm, MidpointRounding.AwayFromZero), Math.Sign(d)) : Math.Round(dm, 2, MidpointRounding.AwayFromZero);
             case double x:
-                if (x == 0)
+                if (x == 0 || !double.IsFinite(x))
                 {
                     return x;
                 }
 
                 var xm = x * m;
-                return wholeNumbers ? (double)NonZero((decimal)Math.Round(xm, MidpointRounding.AwayFromZero), Math.Sign(x)) : Math.Round(xm, 4);
+                if (!double.IsFinite(xm))
+                {
+                    return x > 0 ? double.MaxValue : double.MinValue;
+                }
+
+                if (wholeNumbers)
+                {
+                    var rounded = Math.Round(xm, MidpointRounding.AwayFromZero);
+                    return rounded == 0 ? Math.Sign(x) : rounded;
+                }
+
+                return Math.Round(xm, 4);
             case long l:
                 if (l == 0)
                 {
                     return l;
                 }
 
-                return (long)NonZero((decimal)Math.Round(l * m, MidpointRounding.AwayFromZero), Math.Sign(l));
+                var lm = Math.Round(l * m, MidpointRounding.AwayFromZero);
+                if (lm >= 9.2233720368547758E+18)
+                {
+                    return long.MaxValue;
+                }
+
+                if (lm <= -9.2233720368547758E+18)
+                {
+                    return long.MinValue;
+                }
+
+                return lm == 0 ? Math.Sign(l) : (long)lm;
             default:
                 return value;
         }

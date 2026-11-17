@@ -3,6 +3,7 @@
 ## 0.1.10
 
 - Fixed: when a CSV cell did not parse as its column's type, the error message quoted the cell (the .NET message contains the value), so a data value could end up on screen, in a screenshot or in a pasted error. The error now names the file, line and column and says the value is not shown.
+- Fixed crashes on numbers at the limits of their type (`long.MaxValue`, `decimal.MaxValue`, `NaN`, `Infinity`, `double.MaxValue`) in scaled amount and quantity columns. Values that cannot be scaled any further are clamped to the type's largest value; `NaN` and infinities stay as they are.
 - Fixed a crash: a placeholder date such as `9999-12-31` ("no end date") or `0001-01-01` in a date column made the date shift overflow and stopped the run. Dates at the ends of the calendar (year 9990 or later, 1900 or earlier) now stay as they are in the data, in report filters and in the trend check.
 - Column names in Ukrainian, Russian, Polish, German, French and Spanish (surname, phone, address, city, country, …) are recognised, so those columns get realistic fake names, cities and phones. Whole-number columns that identify someone (phone, SSN, passport) are mapped one-to-one instead of scaled; look-alikes such as `iPhonesSold` are not.
 - The "output must not be inside the source project" check now follows symbolic links and junctions, so a link into the project cannot hide it.
