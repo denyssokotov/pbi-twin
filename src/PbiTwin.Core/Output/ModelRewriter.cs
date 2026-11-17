@@ -165,7 +165,17 @@ public static class ModelRewriter
         _ => "type any",
     };
 
-    private static string MString(string s) => "\"" + s.Replace("\"", "\"\"", StringComparison.Ordinal) + "\"";
+    /// <summary>
+    /// An M text literal. Inside M strings <c>#(</c> starts an escape such as <c>#(lf)</c>, so a literal <c>#(</c>
+    /// is written <c>#(#)(</c>; line breaks and tabs are written as escapes too.
+    /// </summary>
+    internal static string MString(string s) => "\""
+        + s.Replace("\"", "\"\"", StringComparison.Ordinal)
+            .Replace("#(", "#(#)(", StringComparison.Ordinal)
+            .Replace("\r", "#(cr)", StringComparison.Ordinal)
+            .Replace("\n", "#(lf)", StringComparison.Ordinal)
+            .Replace("\t", "#(tab)", StringComparison.Ordinal)
+        + "\"";
 
     private static void Clean(Model model)
     {

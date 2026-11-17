@@ -348,3 +348,16 @@ public class MetadataTests
         }
     }
 }
+
+public class MTextLiteralTests
+{
+    [Theory]
+    [InlineData("plain", "\"plain\"")]
+    [InlineData("say \"hi\"", "\"say \"\"hi\"\"\"")]
+    [InlineData("Qty #(units)", "\"Qty #(#)(units)\"")]
+    [InlineData("a\nb", "\"a#(lf)b\"")]
+    [InlineData("a\r\nb\tc", "\"a#(cr)#(lf)b#(tab)c\"")]
+    [InlineData("C:\\Twins #1", "\"C:\\Twins #1\"")]
+    public void M_text_is_escaped_the_way_M_reads_it(string text, string expected) =>
+        Assert.Equal(expected, PbiTwin.Core.Output.ModelRewriter.MString(text));
+}

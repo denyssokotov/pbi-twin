@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.8
+
+- Fixed: a column name or output path containing `#(` (or a line break or tab in a name) was written to the Power Query text unescaped, where `#(` starts an escape sequence such as `#(lf)`. These are now escaped.
+- Text columns kept as they are, but whose sampled values are all different, are reported as possible identifiers.
+- Random models with awkward names and values (quotes, commas, line breaks, `#(`, Cyrillic) go through the whole pipeline in both rename modes; every check must pass.
+
 ## 0.1.7
 
 - Every picture in the report (logos, backgrounds) is named in the trust report, because its content cannot be scanned and a logo can identify a company.

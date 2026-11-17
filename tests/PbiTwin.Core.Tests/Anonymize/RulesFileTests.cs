@@ -2,6 +2,7 @@ using PbiTwin.Core.Anonymize;
 using PbiTwin.Core.Extract;
 using PbiTwin.Core.Metadata;
 using PbiTwin.Core.Output;
+using PbiTwin.Core.Rename;
 using PbiTwin.Core.Tests.Guards;
 
 namespace PbiTwin.Core.Tests.Anonymize;
@@ -90,6 +91,23 @@ public class RulesFileRobustnessTests
 
         Assert.Equal(Rule.Keep, plan["DimCustomer[Segment]"].Rule);
         Assert.Equal(["DimProduct[Brand]: "], result.Rejected);
+    }
+}
+
+public class KeptIdentifierTests
+{
+    [Fact]
+    public void A_kept_text_column_with_all_different_values_is_reported_but_a_kept_category_is_not()
+    {
+        var sample = Path.Combine(RepoPaths.Root, "samples", "ContosoPII");
+        var plan = new TwinSession(PbipProject.Open(sample), new CsvTableReader(Path.Combine(sample, "data"), c => c.SourceColumn)).Scan();
+        plan.SetRule("DimProduct[ProductName]", Rule.Keep);
+        plan.SetRule("DimProduct[Category]", Rule.Keep);
+
+        var warning = Assert.Single(PbiTwin.Core.Verify.Verifier.KeptIdentifierColumns(plan, IdentityNames.Instance));
+
+        Assert.Contains("DimProduct[ProductName]", warning, StringComparison.Ordinal);
+        Assert.DoesNotContain("Category", warning, StringComparison.Ordinal);
     }
 }
 

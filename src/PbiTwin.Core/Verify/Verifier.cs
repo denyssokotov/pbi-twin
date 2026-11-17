@@ -139,7 +139,26 @@ public static class Verifier
         }
 
         report.Warnings.AddRange(KeptSensitiveColumns(anonymizer.Plan, names));
+        report.Warnings.AddRange(KeptIdentifierColumns(anonymizer.Plan, names));
         return report;
+    }
+
+    /// <summary>Text columns kept as they are whose sampled values are all different: they behave like identifiers and can single a row out.</summary>
+    public static IEnumerable<string> KeptIdentifierColumns(AnonymizationPlan plan, INames names)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+        ArgumentNullException.ThrowIfNull(names);
+
+        var ids = plan.Columns
+            .Where(p => p.Rule == Rule.Keep && p.Column.Type == ColumnType.Text && !Sensitive.Contains(p.Classification.Class)
+                && p.Profile is { AllDistinct: true, Rows: >= 20 })
+            .Select(p => names.Id(p.Column))
+            .Order(StringComparer.Ordinal)
+            .ToList();
+        if (ids.Count > 0)
+        {
+            yield return $"{ids.Count} text column(s) were kept as they are, but every value in the sample is different, so they may identify single rows: {string.Join(", ", ids.Take(8))}{(ids.Count > 8 ? ", …" : string.Empty)}. Check that this is intended.";
+        }
     }
 
     private static readonly HashSet<ColumnClass> Sensitive = [ColumnClass.PersonName, ColumnClass.Email, ColumnClass.Phone, ColumnClass.Iban, ColumnClass.Address, ColumnClass.FreeText];
