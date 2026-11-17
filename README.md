@@ -138,6 +138,18 @@ customers there are) — that is the point of a twin.
 
 **Does it use AI to classify columns?** No. Plain, readable heuristics in `src/PbiTwin.Core/Classify`.
 
+## Troubleshooting
+
+| Symptom | What to do |
+|---|---|
+| No running model is listed | Open the `.pbip` in Power BI Desktop and keep it open; PbiTwin only talks to `localhost`. |
+| "not enough memory" | Set a **row limit** for fact tables. Distinct text values are kept in memory (about 0.5 GB per million identifiers). |
+| The twin opens but is empty | Press **Refresh** in Power BI Desktop; the data is read from the `data` folder next to the `.pbip`. If you moved the folder, change the `DataFolder` parameter. |
+| "Leak scan: N leaks" (red) | The twin still contains original values. The report lists file, line, column and the surrounding text with the value cut out; fix the rule of that column and run again. Do not share this twin. |
+| Warnings about hard-coded dates or ambiguous literals | A DAX expression or filter contains a value that was changed; review the named expression in the twin. |
+| Windows SmartScreen blocks the exe | The files are not code-signed. Compare `Get-FileHash` with `SHA256SUMS.txt`, then choose *More info → Run anyway*. |
+| The run stopped with an error | The half-written twin is removed. The message names the file, line and column of a bad value, never the value. |
+
 ## License
 
 [MIT](LICENSE)
