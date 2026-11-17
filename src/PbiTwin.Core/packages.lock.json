@@ -4,9 +4,9 @@
     "net8.0": {
       "Microsoft.AnalysisServices": {
         "type": "Direct",
-        "requested": "[19.118.3, )",
-        "resolved": "19.118.3",
-        "contentHash": "W4Z2uowmV+LaDC0ApUgT5uAa+CyDmCF1FCj47CxE1vUBLTBDXy4gp639r1OrJdbf90FuIFdXKDDWxa2cTk7jLQ==",
+        "requested": "[19.120.1, )",
+        "resolved": "19.120.1",
+        "contentHash": "mDB6sq7HN1qm5Ww5e75+q19yIy6jBcCR2UyzutkdRfLZlmuPrkK92Xhln5Zzu/ANlm3tiGD+c8FqprUB/8Ypbg==",
         "dependencies": {
           "Microsoft.Identity.Client": "4.83.3",
           "Microsoft.Identity.Client.Broker": "4.83.3"
@@ -24,9 +24,9 @@
       },
       "Microsoft.NET.ILLink.Tasks": {
         "type": "Direct",
-        "requested": "[8.0.34, )",
-        "resolved": "8.0.34",
-        "contentHash": "AoMGwI/388svzARQ2NYC25vFOQGcf13FgQWv61TwPAdPUMOejXpQxBQHrQpXfqM7vqxxj1E3SAkX/OkE2cuChw=="
+        "requested": "[8.0.30, )",
+        "resolved": "8.0.30",
+        "contentHash": "SfmwuZjUPBTEoBMAsXZ/hWkaEK9oL+Y/UtAx7N6RyWHfcMt9J0ExrNPuOgTyPbCXIyiTBFsxFNrPLEZNPmJcvA=="
       },
       "Microsoft.Identity.Client": {
         "type": "Transitive",

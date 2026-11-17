@@ -5,7 +5,7 @@
   -->
   <ItemGroup>
     <!-- Runtime: official Microsoft Analysis Services clients. -->
-    <PackageVersion Include="Microsoft.AnalysisServices" Version="19.118.3" />
+    <PackageVersion Include="Microsoft.AnalysisServices" Version="19.120.1" />
     <PackageVersion Include="Microsoft.AnalysisServices.AdomdClient" Version="19.118.3" />
 
     <!-- Tests only. -->
