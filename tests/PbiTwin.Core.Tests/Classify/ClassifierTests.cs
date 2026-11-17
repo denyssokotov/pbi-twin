@@ -67,6 +67,32 @@ public class ClassifierTests
         Assert.Equal(expected, Classifier.Classify(Col(name, type), Profile(sample), false).Class);
     }
 
+    [Theory]
+    [InlineData("Прізвище", ColumnClass.PersonName)]
+    [InlineData("ПІБ клієнта", ColumnClass.PersonName)]
+    [InlineData("Nachname", ColumnClass.PersonName)]
+    [InlineData("Imię i nazwisko", ColumnClass.PersonName)]
+    [InlineData("Телефон", ColumnClass.Phone)]
+    [InlineData("Adresse", ColumnClass.Address)]
+    [InlineData("Адреса доставки", ColumnClass.Address)]
+    [InlineData("Місто", ColumnClass.City)]
+    [InlineData("Stadt", ColumnClass.City)]
+    [InlineData("Країна", ColumnClass.Country)]
+    [InlineData("Pays", ColumnClass.Country)]
+    public void Column_names_in_other_languages_are_recognised(string name, ColumnClass expected) =>
+        Assert.Equal(expected, Classifier.Classify(Col(name, ColumnType.Text), Profile("x"), false).Class);
+
+    [Theory]
+    [InlineData("PhoneNumber", ColumnClass.Key)]
+    [InlineData("MobilePhone", ColumnClass.Key)]
+    [InlineData("CustomerSSN", ColumnClass.Key)]
+    [InlineData("PassportNo", ColumnClass.Key)]
+    [InlineData("ClassSnacks", ColumnClass.Quantity)]
+    [InlineData("iPhonesSold", ColumnClass.Quantity)]
+    [InlineData("Payslips", ColumnClass.Quantity)]
+    public void Numbers_that_identify_someone_are_mapped_but_look_alikes_are_not(string name, ColumnClass expected) =>
+        Assert.Equal(expected, Classifier.Classify(Col(name, ColumnType.Int64), Profile(3L), false).Class);
+
     [Fact]
     public void Discount_between_zero_and_one_is_kept_as_percent() =>
         Assert.Equal(ColumnClass.Percent, Classifier.Classify(Col("Discount", ColumnType.Double), Profile(0.1, 0.2, 0.0), false).Class);

@@ -3,6 +3,7 @@
 ## 0.1.10
 
 - Fixed: when a CSV cell did not parse as its column's type, the error message quoted the cell (the .NET message contains the value), so a data value could end up on screen, in a screenshot or in a pasted error. The error now names the file, line and column and says the value is not shown.
+- Column names in Ukrainian, Russian, Polish, German, French and Spanish (surname, phone, address, city, country, …) are recognised, so those columns get realistic fake names, cities and phones. Whole-number columns that identify someone (phone, SSN, passport) are mapped one-to-one instead of scaled; look-alikes such as `iPhonesSold` are not.
 - The "output must not be inside the source project" check now follows symbolic links and junctions, so a link into the project cannot hide it.
 - A run that fails or is cancelled halfway now removes the half-written twin (and the codebook), so it cannot be mistaken for a finished one.
 - A test proves that the trust report itself holds no original value (it is excluded from the leak scan, so it needed its own check).

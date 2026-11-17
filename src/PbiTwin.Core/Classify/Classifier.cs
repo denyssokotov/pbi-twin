@@ -74,6 +74,22 @@ public static partial class Classifier
         "contact", "person", "owner", "author", "manager", "employee", "representative",
     ];
 
+    // Column names in other languages (letters only, lower case, as Normalize produces them).
+    private static readonly string[] PersonHints = ["прізвище", "призвище", "імя", "піб", "фіо", "фамилия", "имя", "фио", "nachname", "vorname", "kundenname", "prenom", "apellido", "nazwisko", "imie"];
+
+    private static readonly string[] PhoneHints = ["телефон", "мобільний", "мобильный", "telefon", "telefono", "téléphone", "komorka", "handy"];
+
+    private static readonly string[] AddressHints = ["адреса", "адрес", "вулиця", "улица", "adresse", "direccion", "dirección", "strasse", "ulica", "adres"];
+
+    private static readonly string[] CityHints = ["місто", "город", "stadt", "ville", "ciudad", "miasto"];
+
+    private static readonly string[] CountryHints = ["країна", "страна", "país", "kraj"];
+
+    /// <summary>Numbers that identify a person or account (phone, tax id, passport): mapped one-to-one, not scaled.</summary>
+    private static readonly string[] NumericIdHints = ["phone", "mobile", "ssn", "passport", "taxid", "nationalid", "iban", "телефон", "паспорт", "інн", "іпн"];
+
+    private static bool HasAny(string name, string[] hints) => hints.Any(h => name.Contains(h, StringComparison.Ordinal));
+
     public static bool IsEmail(string s) => EmailPattern().IsMatch(s);
 
     public static bool IsIban(string s) => IbanPattern().IsMatch(s.Replace(" ", string.Empty, StringComparison.Ordinal));
@@ -122,6 +138,11 @@ public static partial class Classifier
 
     private static Classification ClassifyNumber(ColumnInfo column, ColumnProfile p, string name)
     {
+        if (column.Type == ColumnType.Int64 && NumericIdHints.Any(h => name.StartsWith(h, StringComparison.Ordinal) || name.EndsWith(h, StringComparison.Ordinal)))
+        {
+            return new(ColumnClass.Key, Confidence.Medium, "number that identifies a person or account");
+        }
+
         if (column.IsKey || (column.Type == ColumnType.Int64 && KeyName().IsMatch(column.Name)))
         {
             return new(ColumnClass.Key, column.IsKey ? Confidence.High : Confidence.Medium, column.IsKey ? "marked as key" : "key-like name");
@@ -155,29 +176,29 @@ public static partial class Classifier
         }
 
         if (name.Contains("phone", StringComparison.Ordinal) || name.Contains("mobile", StringComparison.Ordinal)
-            || name is "tel" or "telephone" or "fax" || (p.Rate(IsPhone) >= 0.8 && p.Rate(IsCode) < 0.5))
+            || name is "tel" or "telephone" or "fax" || HasAny(name, PhoneHints) || (p.Rate(IsPhone) >= 0.8 && p.Rate(IsCode) < 0.5))
         {
             return new(ColumnClass.Phone, Confidence.High, "phone numbers");
         }
 
-        if (category is "ADDRESS" || name.Contains("address", StringComparison.Ordinal) || name.Contains("street", StringComparison.Ordinal))
+        if (category is "ADDRESS" || name.Contains("address", StringComparison.Ordinal) || name.Contains("street", StringComparison.Ordinal) || HasAny(name, AddressHints))
         {
             return new(ColumnClass.Address, Confidence.High, "street addresses");
         }
 
-        if (category is "CITY" || name is "city" or "town" || name.EndsWith("city", StringComparison.Ordinal))
+        if (category is "CITY" || name is "city" or "town" || name.EndsWith("city", StringComparison.Ordinal) || HasAny(name, CityHints))
         {
             return new(ColumnClass.City, Confidence.High, "city names");
         }
 
         if (category is "COUNTRY" or "STATEORPROVINCE" or "COUNTY" or "CONTINENT" || name.Contains("country", StringComparison.Ordinal)
-            || name is "nation" or "state" or "province")
+            || name is "nation" or "state" or "province" || name is "pays" or "pais" || HasAny(name, CountryHints))
         {
             return new(ColumnClass.Country, Confidence.High, "country / region names");
         }
 
         if (PersonNames.Contains(name) || name.EndsWith("fullname", StringComparison.Ordinal) || name.EndsWith("firstname", StringComparison.Ordinal)
-            || name.EndsWith("lastname", StringComparison.Ordinal))
+            || name.EndsWith("lastname", StringComparison.Ordinal) || HasAny(name, PersonHints))
         {
             var looksLikePeople = p.Rate(IsPersonName) >= 0.7;
             if (looksLikePeople || name != "name")
