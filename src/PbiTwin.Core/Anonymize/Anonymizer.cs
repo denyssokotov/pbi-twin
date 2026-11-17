@@ -88,7 +88,7 @@ public sealed class Anonymizer
             Rule.Keep => value,
             Rule.Blank => null,
             Rule.Key or Rule.City or Rule.Country or Rule.Label => Lookup(domain, value),
-            Rule.DateShift => value is DateTime d ? d.AddDays(Parameters.DateShiftDays) : value,
+            Rule.DateShift => value is DateTime d ? DateShift.Apply(d, Parameters.DateShiftDays) : value,
             Rule.Money => Scale(value, Parameters.MoneyFactor, noise, wholeNumbers: false),
             Rule.Quantity => Scale(value, Parameters.QuantityFactor, noise, wholeNumbers: true),
             _ => value is string s ? FakeText(domain, s) : null,

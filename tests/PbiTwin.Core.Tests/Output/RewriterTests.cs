@@ -371,3 +371,28 @@ public class MTextLiteralTests
     public void M_text_is_escaped_the_way_M_reads_it(string text, string expected) =>
         Assert.Equal(expected, PbiTwin.Core.Output.ModelRewriter.MString(text));
 }
+
+public class ReportDateLiteralTests
+{
+    [Fact]
+    public void A_filter_on_the_end_of_time_is_left_alone_and_other_dates_move()
+    {
+        var dir = Directory.CreateTempSubdirectory().FullName;
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(dir, "definition"));
+            File.WriteAllText(Path.Combine(dir, "definition", "v.json"),
+                """{ "a": { "Literal": { "Value": "datetime'9999-12-31T00:00:00'" } }, "b": { "Literal": { "Value": "datetime'2024-01-01T00:00:00'" } } }""");
+
+            ReportRewriter.Rewrite(dir, new LiteralRewriter(new Dictionary<string, Dictionary<Domain, string>>()), -1092);
+
+            var text = File.ReadAllText(Path.Combine(dir, "definition", "v.json"));
+            Assert.Contains("datetime'9999-12-31T00:00:00'", text, StringComparison.Ordinal);
+            Assert.DoesNotContain("2024-01-01", text, StringComparison.Ordinal);
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+}

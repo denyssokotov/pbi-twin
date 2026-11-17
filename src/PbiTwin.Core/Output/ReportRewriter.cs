@@ -116,7 +116,7 @@ public static partial class ReportRewriter
         var m = DateTimeLiteral().Match(literal);
         if (m.Success && DateTime.TryParse(m.Groups["d"].Value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var d))
         {
-            return $"datetime'{d.AddDays(shift).ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture)}'";
+            return $"datetime'{PbiTwin.Core.Anonymize.DateShift.Apply(d, shift).ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture)}'";
         }
 
         return literal;

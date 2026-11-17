@@ -58,7 +58,7 @@ public sealed class Metrics
             if (dateIndex >= 0 && money.Length > 0 && original[dateIndex] is DateTime od && twin[dateIndex] is DateTime td)
             {
                 // Bucket the twin by its un-shifted date, so both series use the same calendar months.
-                var back = td.AddDays(-shift);
+                var back = PbiTwin.Core.Anonymize.DateShift.IsPlaceholder(od) ? td : td.AddDays(-shift);
                 var o = Bucket((od.Year * 12) + od.Month);
                 var t = Bucket((back.Year * 12) + back.Month);
                 for (var k = 0; k < money.Length; k++)

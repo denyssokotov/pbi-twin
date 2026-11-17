@@ -62,6 +62,18 @@ public sealed class EdgeCaseTests : IDisposable
     }
 
     [Fact]
+    public void Placeholder_dates_survive_a_whole_run_and_stay_put()
+    {
+        var result = Run(["1,A,n,10,2024-03-01", "2,B,n,20,9999-12-31", "3,C,n,30,0001-01-01", "4,D,n,40,2025-06-01", "5,E,n,50,2025-07-01", "6,F,n,60,2025-08-01"]);
+
+        Assert.DoesNotContain(result.Report.Checks, c => c.Status == CheckStatus.Fail);
+        var days = Records(Path.Combine(result.Folder.DataFolder, "T.csv")).Select(r => r[4]!).ToList();
+        Assert.Contains("9999-12-31T00:00:00", days);
+        Assert.Contains("0001-01-01T00:00:00", days);
+        Assert.DoesNotContain("2024-03-01T00:00:00", days);
+    }
+
+    [Fact]
     public void A_table_without_rows_is_created_empty()
     {
         var result = Run([]);
@@ -121,6 +133,47 @@ public sealed class EdgeCaseTests : IDisposable
         var rows = Records(Path.Combine(result.Folder.DataFolder, "T.csv"));
         Assert.Equal(10, rows.Count(r => string.IsNullOrEmpty(r[3])));
         Assert.Equal(7, rows.Count(r => string.IsNullOrEmpty(r[4])));
+    }
+
+    public void Dispose()
+    {
+        if (Directory.Exists(_root))
+        {
+            Directory.Delete(_root, recursive: true);
+        }
+    }
+}
+
+public sealed class SentinelDateTests : IDisposable
+{
+    private readonly string _root = Path.Combine(Path.GetTempPath(), "pbitwin-tests", Guid.NewGuid().ToString("N"));
+
+    [Theory]
+    [InlineData(1092)]
+    [InlineData(-1092)]
+    public void Placeholder_dates_at_the_ends_of_the_calendar_neither_crash_nor_move(int shift)
+    {
+        var anonymizer = new Anonymizer(
+            AnonymizationPlanFor(),
+            new TwinOptions { Seed = "SENTINEL-DATES-1", DateShiftDays = shift });
+        var column = anonymizer.Plan.Columns.Single();
+        var noise = anonymizer.NoiseFor("T");
+
+        Assert.Equal(new DateTime(9999, 12, 31), anonymizer.Transform(column, new DateTime(9999, 12, 31), noise));
+        Assert.Equal(new DateTime(1900, 1, 1), anonymizer.Transform(column, new DateTime(1900, 1, 1), noise));
+        Assert.Equal(DateTime.MinValue, anonymizer.Transform(column, DateTime.MinValue, noise));
+        Assert.Equal(DateTime.MaxValue, anonymizer.Transform(column, DateTime.MaxValue, noise));
+        Assert.Equal(new DateTime(2024, 3, 1).AddDays(shift), anonymizer.Transform(column, new DateTime(2024, 3, 1), noise));
+    }
+
+    private static AnonymizationPlan AnonymizationPlanFor()
+    {
+        var db = new Database { CompatibilityLevel = 1567, Model = new() };
+        var t = new Table { Name = "T" };
+        t.Columns.Add(new DataColumn { Name = "EndDate", DataType = DataType.DateTime, SourceColumn = "EndDate" });
+        t.Partitions.Add(new Partition { Name = "T", Source = new MPartitionSource { Expression = "x" } });
+        db.Model.Tables.Add(t);
+        return AnonymizationPlan.Create(ModelInfo.FromModel(db.Model), new Dictionary<string, PbiTwin.Core.Classify.ColumnProfile>(), _ => new HashSet<object>());
     }
 
     public void Dispose()
