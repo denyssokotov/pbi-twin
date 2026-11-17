@@ -161,6 +161,27 @@ public sealed class SourceFormatTests : IDisposable
         Assert.Contains("picture file", result.Report.ToMarkdown(), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Links_in_the_report_are_reported_by_host_only()
+    {
+        var project = CopySample(_ => { }, asBim: false);
+        var page = Path.Combine(project, "ContosoPII.Report", "definition", "links.json");
+        File.WriteAllText(page, """
+            { "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/page/1.0.0/schema.json",
+              "url": "https://intranet.fabrikam-internal.example/sites/finance/secret?id=1",
+              "mail": "mailto:boss@fabrikam-internal.example" }
+            """);
+
+        var result = Run(project);
+
+        var warning = Assert.Single(result.Report.Warnings, w => w.Contains("links to", StringComparison.Ordinal));
+        Assert.Contains("intranet.fabrikam-internal.example", warning, StringComparison.Ordinal);
+        Assert.Contains("mailto links", warning, StringComparison.Ordinal);
+        Assert.DoesNotContain("developer.microsoft.com", warning, StringComparison.Ordinal);
+        Assert.DoesNotContain("secret", warning, StringComparison.Ordinal);
+        Assert.DoesNotContain("boss@", warning, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("source", "source")]
     [InlineData("source", "source/Twin")]

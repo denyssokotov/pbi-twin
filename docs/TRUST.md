@@ -28,6 +28,7 @@ and calls no AI service.
 | Caches are not carried over | `.pbi` folders, `*.abf`, `*.pbix`, `*.bak` and symbolic links are never copied. Files that are neither text nor pictures are copied but reported in the trust report, because the leak scan cannot read them. |
 | The seed stays secret | It is random (80 bits from the system generator), shown once, and written nowhere, which a test checks over the whole output. A short user-chosen seed is reported as a weakness. |
 | Pictures are listed | Logos and other pictures in the report are copied unchanged. Their content cannot be scanned (a logo can identify a company), so every picture is named in the trust report. |
+| Links are listed | Web hosts and `mailto:` links written in the model or report are named (host only) in the trust report, since they are copied unchanged. |
 | The twin is re-opened | After writing, the twin is loaded again from disk (.pbip → report → model) and its tables and relationships are counted. |
 | Kept columns are visible | Columns that look personal (names, emails, phones, IBANs, addresses, free text) but were set to *Keep* are listed in the trust report. |
 | Every connection is guarded | A test fails if any code that opens a connection does not call the localhost guard first. |

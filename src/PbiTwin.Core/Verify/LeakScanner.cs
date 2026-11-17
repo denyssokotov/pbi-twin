@@ -22,6 +22,15 @@ public static partial class LeakScanner
     [GeneratedRegex("base64,[A-Za-z0-9+/=]+")]
     private static partial Regex Base64();
 
+    [GeneratedRegex(@"(?:https?|ftp)://(?:[^\s/@""'<>\\]+@)?(?<host>[A-Za-z0-9.-]+)|mailto:(?<mail>[^\s""'<>\\]+)", RegexOptions.IgnoreCase)]
+    private static partial Regex Link();
+
+    /// <summary>Hosts that every Power BI file mentions (JSON schemas, XML namespaces); they say nothing about the company.</summary>
+    private static readonly HashSet<string> StandardHosts = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "developer.microsoft.com", "schemas.microsoft.com", "www.w3.org", "schemas.openxmlformats.org", "json-schema.org",
+    };
+
     private const string CellDelimiters = ",;\"\t|'";
 
     private static readonly HashSet<string> TextExtensions = new(StringComparer.OrdinalIgnoreCase)
@@ -222,6 +231,40 @@ public static partial class LeakScanner
             .Select(f => Path.GetRelativePath(folder, f).Replace('\\', '/'))
             .Order(StringComparer.Ordinal)
             .ToList();
+    }
+
+    /// <summary>
+    /// Web hosts and mail links written in the model or report (buttons, hyperlinks, descriptions). A link to an internal
+    /// site names the company even when no data value does. Returns host names only (and "mailto" counted as one entry).
+    /// </summary>
+    public static IReadOnlyList<string> LinkTargets(string folder, params string[] excludeFolders)
+    {
+        var skip = excludeFolders.Select(f => Path.GetFullPath(f).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar).ToList();
+        var hosts = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var file in Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories))
+        {
+            if (!TextExtensions.Contains(Path.GetExtension(file)) || skip.Any(s => Path.GetFullPath(file).StartsWith(s, StringComparison.OrdinalIgnoreCase)))
+            {
+                continue;
+            }
+
+            foreach (var line in File.ReadLines(file))
+            {
+                foreach (Match m in Link().Matches(Base64().Replace(line, string.Empty)))
+                {
+                    if (m.Groups["mail"].Success)
+                    {
+                        hosts.Add("mailto links");
+                    }
+                    else if (!StandardHosts.Contains(m.Groups["host"].Value.TrimEnd('.')))
+                    {
+                        hosts.Add(m.Groups["host"].Value.TrimEnd('.').ToLowerInvariant());
+                    }
+                }
+            }
+        }
+
+        return hosts.ToList();
     }
 
     /// <summary>Picture files (logos, backgrounds) as relative paths. Their content cannot be scanned, and a logo can identify a company.</summary>

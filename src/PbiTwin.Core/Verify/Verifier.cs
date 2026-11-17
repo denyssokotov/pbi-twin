@@ -99,6 +99,11 @@ public static class Verifier
             report.Warnings.Add($"{unscanned.Count} file(s) are neither text nor pictures, so the leak scan could not read them. They were copied as they are: {string.Join(", ", unscanned.Take(5))}{(unscanned.Count > 5 ? ", …" : string.Empty)}. Check or delete them before sharing.");
         }
 
+        if (LeakScanner.LinkTargets(twin.Root, twin.DataFolder) is { Count: > 0 } links)
+        {
+            report.Warnings.Add($"The model or report contains links to: {string.Join(", ", links.Take(6))}{(links.Count > 6 ? ", …" : string.Empty)}. They were copied unchanged and may name the company or an internal site. Check them before sharing.");
+        }
+
         if (LeakScanner.ImageFiles(twin.Root) is { Count: > 0 } images)
         {
             report.Warnings.Add($"{images.Count} picture file(s) were copied unchanged and cannot be scanned (a logo can identify the company): {string.Join(", ", images.Take(5))}{(images.Count > 5 ? ", …" : string.Empty)}. Look at them before sharing.");

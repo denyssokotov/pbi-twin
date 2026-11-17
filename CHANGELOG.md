@@ -4,6 +4,7 @@
 
 - Fixed: a column name or output path containing `#(` (or a line break or tab in a name) was written to the Power Query text unescaped, where `#(` starts an escape sequence such as `#(lf)`. These are now escaped.
 - Fixed a leak found by the random-model test: a DAX filter such as `'Dim'[Name] = "Kyiv"` kept the original word when `Kyiv` was a value of a different column. If the filtered column is rewritten, the literal is now replaced too (the filter stays as empty as before).
+- Links in the model or report (button actions, hyperlinks, `mailto:`) are reported by host name, because an internal address can name the company even when no data value does. Standard Microsoft schema hosts are ignored.
 - Text columns kept as they are, but whose sampled values are all different, are reported as possible identifiers.
 - Random models with awkward names and values (quotes, commas, line breaks, `#(`, Cyrillic) go through the whole pipeline in both rename modes (with measures, a calculated column and a row-level-security filter that mention original values); every check must pass.
 
