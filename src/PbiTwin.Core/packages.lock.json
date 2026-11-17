@@ -14,9 +14,9 @@
       },
       "Microsoft.AnalysisServices.AdomdClient": {
         "type": "Direct",
-        "requested": "[19.118.3, )",
-        "resolved": "19.118.3",
-        "contentHash": "uEWP6OLNtwSqnCFNVj1QDCziosBxM6PkZIhMLmnq4uW5VH009Mz7xRM0hVaSLJshQt67ye4qd1s93mETZ5QoXw==",
+        "requested": "[19.120.1, )",
+        "resolved": "19.120.1",
+        "contentHash": "wl652wyy/ZIMV0/zxYvMf65KCZGdgOx1VF4TV1pan0tejCbl7f7ap1zio735h1O3dci/flt0baF8oVyNPRe/fw==",
         "dependencies": {
           "Microsoft.Identity.Client": "4.83.3",
           "Microsoft.Identity.Client.Broker": "4.83.3"
@@ -24,9 +24,9 @@
       },
       "Microsoft.NET.ILLink.Tasks": {
         "type": "Direct",
-        "requested": "[8.0.34, )",
-        "resolved": "8.0.34",
-        "contentHash": "AoMGwI/388svzARQ2NYC25vFOQGcf13FgQWv61TwPAdPUMOejXpQxBQHrQpXfqM7vqxxj1E3SAkX/OkE2cuChw=="
+        "requested": "[8.0.30, )",
+        "resolved": "8.0.30",
+        "contentHash": "SfmwuZjUPBTEoBMAsXZ/hWkaEK9oL+Y/UtAx7N6RyWHfcMt9J0ExrNPuOgTyPbCXIyiTBFsxFNrPLEZNPmJcvA=="
       },
       "Microsoft.Identity.Client": {
         "type": "Transitive",
@@ -79,9 +79,9 @@
     "net8.0/win-x64": {
       "Microsoft.AnalysisServices.AdomdClient": {
         "type": "Direct",
-        "requested": "[19.118.3, )",
-        "resolved": "19.118.3",
-        "contentHash": "uEWP6OLNtwSqnCFNVj1QDCziosBxM6PkZIhMLmnq4uW5VH009Mz7xRM0hVaSLJshQt67ye4qd1s93mETZ5QoXw==",
+        "requested": "[19.120.1, )",
+        "resolved": "19.120.1",
+        "contentHash": "wl652wyy/ZIMV0/zxYvMf65KCZGdgOx1VF4TV1pan0tejCbl7f7ap1zio735h1O3dci/flt0baF8oVyNPRe/fw==",
         "dependencies": {
           "Microsoft.Identity.Client": "4.83.3",
           "Microsoft.Identity.Client.Broker": "4.83.3"
