@@ -209,6 +209,7 @@ public sealed class TwinSession
         progress?.Report(new TwinProgress("Verifying", null, 100));
         var report = Verifier.Verify(twin, Model, anonymizer, facts, literals, names);
         report.Checks.Add(DaxReferenceCheck.Run(database.Model));
+        report.Checks.Add(ReopenCheck.Run(twin, database.Model.Tables.Count, database.Model.Relationships.Count));
         if (map is not null)
         {
             report.Warnings.Add($"Names were obfuscated. The codebook ({Path.GetFileName(twin.CodebookFile)}) was saved next to the twin folder, not inside it. Never share it together with the twin.");

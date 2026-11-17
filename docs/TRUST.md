@@ -27,6 +27,8 @@ and calls no AI service.
 | Source is not modified | The project is read; the twin is written to a separate folder. The output folder may not be, contain or sit inside the project folder (`TwinFolder.EnsureSeparate`, tested), and an existing folder is only replaced if PbiTwin created it. |
 | Caches are not carried over | `.pbi` folders, `*.abf`, `*.pbix`, `*.bak` and symbolic links are never copied. Files that are neither text nor pictures are copied but reported in the trust report, because the leak scan cannot read them. |
 | The seed stays secret | It is random (80 bits from the system generator), shown once, and written nowhere, which a test checks over the whole output. A short user-chosen seed is reported as a weakness. |
+| Pictures are listed | Logos and other pictures in the report are copied unchanged. Their content cannot be scanned (a logo can identify a company), so every picture is named in the trust report. |
+| The twin is re-opened | After writing, the twin is loaded again from disk (.pbip → report → model) and its tables and relationships are counted. |
 | Kept columns are visible | Columns that look personal (names, emails, phones, IBANs, addresses, free text) but were set to *Keep* are listed in the trust report. |
 | Every connection is guarded | A test fails if any code that opens a connection does not call the localhost guard first. |
 | CI is hardened | GitHub Actions are pinned to commit SHAs, workflows have read-only permissions (the release job alone can write), and a test fails on an unpinned action. |

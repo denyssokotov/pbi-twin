@@ -155,6 +155,10 @@ public sealed class SourceFormatTests : IDisposable
         var warning = Assert.Single(result.Report.Warnings, w => w.Contains("leak scan could not read", StringComparison.Ordinal));
         Assert.Contains("customers.xlsx", warning, StringComparison.Ordinal);
         Assert.DoesNotContain("logo.png", warning, StringComparison.Ordinal);
+
+        var pictures = Assert.Single(result.Report.Warnings, w => w.Contains("picture file", StringComparison.Ordinal));
+        Assert.Contains("logo.png", pictures, StringComparison.Ordinal);
+        Assert.Contains("picture file", result.Report.ToMarkdown(), StringComparison.Ordinal);
     }
 
     [Theory]

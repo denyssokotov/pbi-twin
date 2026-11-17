@@ -224,6 +224,16 @@ public static partial class LeakScanner
             .ToList();
     }
 
+    /// <summary>Picture files (logos, backgrounds) as relative paths. Their content cannot be scanned, and a logo can identify a company.</summary>
+    public static IReadOnlyList<string> ImageFiles(string folder)
+    {
+        return Directory.EnumerateFiles(folder, "*", SearchOption.AllDirectories)
+            .Where(f => ImageExtensions.Contains(Path.GetExtension(f)))
+            .Select(f => Path.GetRelativePath(folder, f).Replace('\\', '/'))
+            .Order(StringComparer.Ordinal)
+            .ToList();
+    }
+
     /// <summary>Columns whose original values occur in <paramref name="text"/> (e.g. the output path).</summary>
     public static IReadOnlyList<string> ColumnsFoundIn(string text, IReadOnlyDictionary<string, Dictionary<Domain, string>> knownText, INames? names = null)
     {

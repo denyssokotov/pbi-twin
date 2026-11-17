@@ -89,6 +89,7 @@ and [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md) for the algorithms.
 ## Limitations
 
 - Windows and Power BI Desktop only. Models in the Power BI Service (XMLA) are not supported yet.
+- Speed: a 1,000,000-row fact table from CSV takes about 9 seconds and 150 MB of memory (measured on Linux with the sample model; reading from Power BI Desktop depends on the model). Use the row limit for very large tables.
 - The twin's data is CSV in Import mode; DirectQuery behaviour and performance are not reproduced.
 - Classification is heuristic. Always review the Scan step.
 - Size: data is streamed, but every distinct original text value of anonymized columns is kept in memory for

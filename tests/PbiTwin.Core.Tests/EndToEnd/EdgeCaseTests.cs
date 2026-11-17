@@ -49,6 +49,19 @@ public sealed class EdgeCaseTests : IDisposable
     }
 
     [Fact]
+    public void The_twin_is_opened_again_from_disk_and_a_damaged_one_fails()
+    {
+        var result = Run(["1,A,n,10,2024-01-01"]);
+        Assert.Contains(result.Report.Checks, c => c.Name == "Twin opens" && c.Status == CheckStatus.Pass);
+
+        File.Delete(Path.Combine(result.Folder.ReportFolder, "definition.pbir"));
+        Assert.Equal(CheckStatus.Fail, ReopenCheck.Run(result.Folder, 1, 0).Status);
+
+        Directory.Delete(Path.Combine(result.Folder.SemanticModelFolder, "definition"), recursive: true);
+        Assert.Equal(CheckStatus.Fail, ReopenCheck.Run(result.Folder, 1, 0).Status);
+    }
+
+    [Fact]
     public void A_table_without_rows_is_created_empty()
     {
         var result = Run([]);

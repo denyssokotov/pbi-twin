@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.7
+
+- Every picture in the report (logos, backgrounds) is named in the trust report, because its content cannot be scanned and a logo can identify a company.
+- New check "Twin opens": the finished twin is loaded again from disk and its tables and relationships are counted.
+- Random-input (fuzz) tests for the DAX tokenizer, CSV reading/writing and the text matcher; they found nothing, and stay as a guard.
+- Measured: 1,000,000 rows in about 9 s and 150 MB.
+
 ## 0.1.6
 
 - A broken or hand-edited rules file (invalid JSON, empty entries, a column mapped to itself) gives a clear message instead of a crash.
