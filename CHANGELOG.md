@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.9
+
+- The command line rejects unknown options (a typo such as `--rennme` used to be ignored and silently changed what the run did), bad numbers (`--rows 0`, `--noise -5`, `--port abc`), `--rename` values that do not exist, `--seed` without a value, and `--port` together with `--csv`. The output folder and twin name are checked before any data is read.
+- CI checks these refusals on every push.
+- Dependabot proposes monthly updates for actions and packages (nothing merges by itself); `CONTRIBUTING.md` states the non-negotiable rules.
+
 ## 0.1.8
 
 - Fixed: a column name or output path containing `#(` (or a line break or tab in a name) was written to the Power Query text unescaped, where `#(` starts an escape sequence such as `#(lf)`. These are now escaped.

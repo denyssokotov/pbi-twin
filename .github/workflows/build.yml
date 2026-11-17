@@ -47,3 +47,15 @@ jobs:
           test -f "$RUNNER_TEMP/Twin/Twin.pbip" && test -f "$RUNNER_TEMP/Twin.codebook.json"
           dotnet run --configuration Release --no-build --project src/PbiTwin.Cli -- \
             scan --pbip samples/ContosoPII --csv samples/ContosoPII/data | grep -q "DimCustomer\[Email\]"
+
+      - name: Command line refuses mistakes
+        shell: bash
+        run: |
+          cli() { dotnet run --configuration Release --no-build --project src/PbiTwin.Cli -- "$@"; }
+          base="--pbip samples/ContosoPII --csv samples/ContosoPII/data"
+          # Each of these must fail with exit code 1 (a typo must never silently change what a run does).
+          for bad in "--rennme neutral" "--rename bogus" "--rows 0" "--noise -5" "--port 1" "--seed"; do
+            if cli $base --out "$RUNNER_TEMP/Bad" $bad; then echo "accepted: $bad"; exit 1; fi
+          done
+          if cli $base --out samples/ContosoPII/inside; then echo "accepted an output inside the project"; exit 1; fi
+          test ! -e samples/ContosoPII/inside

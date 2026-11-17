@@ -4,6 +4,7 @@ using PbiTwin.Core.Anonymize;
 using PbiTwin.Core.Connection;
 using PbiTwin.Core.Extract;
 using PbiTwin.Core.Metadata;
+using PbiTwin.Core.Output;
 using PbiTwin.Core.Rename;
 using PbiTwin.Core.Verify;
 
@@ -57,9 +58,9 @@ try
     return args[0] switch
     {
         "list" => List(),
-        "scan" => Scan(Options(args[1..])),
-        "translate" => Translate(Options(args[1..])),
-        _ => Create(Options(args)),
+        "scan" => Scan(Options(args[1..], "pbip", "port", "csv", "rules")),
+        "translate" => Translate(Options(args[1..], "codebook", "to")),
+        _ => Create(Options(args, "pbip", "port", "csv", "out", "seed", "name", "rename", "rows", "noise", "keep-descriptions", "rules", "save-rules")),
     };
 }
 catch (OutOfMemoryException)
@@ -101,15 +102,24 @@ static int Create(Dictionary<string, string?> o)
 {
     var pbip = Required(o, "pbip");
     var output = Required(o, "out");
-    var seedGiven = o.TryGetValue("seed", out var seed) && !string.IsNullOrEmpty(seed);
+    var seedGiven = o.ContainsKey("seed");
+    var seed = seedGiven ? Required(o, "seed") : null;
     var options = new TwinOptions
     {
         Seed = seedGiven ? seed! : SeededHash.NewSeed(),
-        RenameMode = o.TryGetValue("rename", out var r) ? Enum.Parse<RenameMode>(r ?? "none", ignoreCase: true) : RenameMode.None,
-        FactRowLimit = o.TryGetValue("rows", out var rows) ? long.Parse(rows!, CultureInfo.InvariantCulture) : null,
-        NoisePercent = o.TryGetValue("noise", out var noise) ? double.Parse(noise!, CultureInfo.InvariantCulture) : 3,
+        RenameMode = o.ContainsKey("rename") ? ParseRename(Required(o, "rename")) : RenameMode.None,
+        FactRowLimit = o.ContainsKey("rows") ? Number<long>(o, "rows", min: 1) : null,
+        NoisePercent = o.ContainsKey("noise") ? Number<double>(o, "noise", min: 0) : 3,
         ClearDescriptions = !o.ContainsKey("keep-descriptions"),
     };
+
+    // Fail before reading any data.
+    var project = PbipProject.Open(pbip);
+    TwinFolder.EnsureSeparate(output, project.RootFolder);
+    if (o.TryGetValue("name", out var twinName))
+    {
+        TwinFolder.ValidateName(twinName ?? string.Empty);
+    }
 
     if (!seedGiven)
     {
@@ -119,7 +129,7 @@ static int Create(Dictionary<string, string?> o)
     var reader = OpenReader(o);
     try
     {
-        var session = new TwinSession(PbipProject.Open(pbip), reader);
+        var session = new TwinSession(project, reader);
         var lastStep = string.Empty;
         var progress = new SyncProgress(p =>
         {
@@ -174,12 +184,17 @@ static int Create(Dictionary<string, string?> o)
 
 static ITableReader OpenReader(Dictionary<string, string?> o)
 {
-    if (o.TryGetValue("csv", out var csv))
+    if (o.ContainsKey("csv") && o.ContainsKey("port"))
     {
-        return new CsvTableReader(csv!, c => c.SourceColumn);
+        throw new ArgumentException("Use either --port (Power BI Desktop) or --csv (files), not both.");
     }
 
-    var port = int.Parse(Required(o, "port"), CultureInfo.InvariantCulture);
+    if (o.ContainsKey("csv"))
+    {
+        return new CsvTableReader(Required(o, "csv"), c => c.SourceColumn);
+    }
+
+    var port = Number<int>(o, "port", min: 1);
     var model = DesktopInstances.Describe(new DesktopInstance(port, string.Empty));
     return new AdomdTableReader(LocalhostGuard.BuildConnectionString(port, model.DatabaseId));
 }
@@ -237,7 +252,20 @@ static int Translate(Dictionary<string, string?> o)
     return 0;
 }
 
-static Dictionary<string, string?> Options(string[] args)
+static RenameMode ParseRename(string value) =>
+    Enum.TryParse<RenameMode>(value, ignoreCase: true, out var mode) && Enum.IsDefined(mode)
+        ? mode
+        : throw new ArgumentException("--rename must be none, neutral or semantic.");
+
+static T Number<T>(Dictionary<string, string?> o, string key, T min) where T : System.Numerics.INumber<T>
+{
+    var text = Required(o, key);
+    return T.TryParse(text, CultureInfo.InvariantCulture, out var value) && value >= min
+        ? value
+        : throw new ArgumentException($"--{key} must be a number of at least {min}, not '{text}'.");
+}
+
+static Dictionary<string, string?> Options(string[] args, params string[] known)
 {
     var o = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
     for (var i = 0; i < args.Length; i++)
@@ -248,6 +276,11 @@ static Dictionary<string, string?> Options(string[] args)
         }
 
         var key = args[i][2..];
+        if (!known.Contains(key, StringComparer.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException($"Unknown option '--{key}'. Run pbitwin-cli --help.");
+        }
+
         var hasValue = i + 1 < args.Length && !args[i + 1].StartsWith("--", StringComparison.Ordinal);
         o[key] = hasValue ? args[++i] : null;
     }
