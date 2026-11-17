@@ -1,3 +1,4 @@
+using PbiTwin.Core.Anonymize;
 using PbiTwin.Core.Extract;
 using PbiTwin.Core.Metadata;
 using PbiTwin.Core.Tests.Guards;
@@ -21,6 +22,35 @@ public sealed class BrokenInputTests : IDisposable
         }
 
         return project;
+    }
+
+    [Fact]
+    public void A_run_that_fails_halfway_leaves_no_half_written_twin_behind()
+    {
+        var data = Path.Combine(_root, "data");
+        Directory.CreateDirectory(data);
+        foreach (var f in Directory.EnumerateFiles(Path.Combine(Sample, "data"), "*.csv"))
+        {
+            File.Copy(f, Path.Combine(data, Path.GetFileName(f)));
+        }
+
+        var session = new TwinSession(PbipProject.Open(Sample), new CsvTableReader(data, c => c.SourceColumn));
+        var plan = session.Scan();
+
+        // The data changes after the scan: the fact table now has a bad cell, found only while streaming it.
+        var fact = Path.Combine(data, "FactSales.csv");
+        var lines = File.ReadAllLines(fact);
+        var amount = lines[0].Split(',').ToList().IndexOf("SalesAmount");
+        var cells = lines[^2].Split(',');
+        cells[amount] = "not-a-number";
+        lines[^2] = string.Join(',', cells);
+        File.WriteAllLines(fact, lines);
+
+        var output = Path.Combine(_root, "out", "Twin");
+        Assert.Throws<InvalidDataException>(() => session.Run(plan, new TwinOptions { Seed = "HALFWAY-FAIL-123", RenameMode = PbiTwin.Core.Rename.RenameMode.Neutral }, output));
+
+        Assert.False(Directory.Exists(output));
+        Assert.False(File.Exists(Path.Combine(_root, "out", "Twin.codebook.json")));
     }
 
     [Fact]

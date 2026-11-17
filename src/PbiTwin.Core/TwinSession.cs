@@ -112,116 +112,126 @@ public sealed class TwinSession
         TwinFolder.EnsureSeparate(outputFolder, Project.RootFolder);
         var twin = TwinFolder.Create(outputFolder, twinName ?? (map is null ? Project.Name + "_Twin" : "Twin"));
 
-        // 1. One-to-one dictionaries from all distinct values (fact tables read only DISTINCT of their keys).
-        progress?.Report(new TwinProgress("Building key mappings", null, 0));
-        var distinct = new Dictionary<string, HashSet<object>>(StringComparer.Ordinal);
-        var inRelationship = Model.Relationships.SelectMany(r => new[] { r.FromId, r.ToId }).ToHashSet(StringComparer.Ordinal);
-        foreach (var domain in plan.Domains.Where(d => Rules.UsesDictionary(d.Rule)))
+        TrustReport report;
+        try
         {
-            cancellation.ThrowIfCancellationRequested();
-            var all = new HashSet<object>();
-            foreach (var c in domain.Columns)
+            // 1. One-to-one dictionaries from all distinct values (fact tables read only DISTINCT of their keys).
+            progress?.Report(new TwinProgress("Building key mappings", null, 0));
+            var distinct = new Dictionary<string, HashSet<object>>(StringComparer.Ordinal);
+            var inRelationship = Model.Relationships.SelectMany(r => new[] { r.FromId, r.ToId }).ToHashSet(StringComparer.Ordinal);
+            foreach (var domain in plan.Domains.Where(d => Rules.UsesDictionary(d.Rule)))
             {
-                var set = _reader.ReadDistinct(c).ToHashSet();
-                if (inRelationship.Contains(c.Id))
+                cancellation.ThrowIfCancellationRequested();
+                var all = new HashSet<object>();
+                foreach (var c in domain.Columns)
                 {
-                    // Kept only to count unmatched keys in the original; everything else is released right away.
-                    distinct[c.Id] = set;
+                    var set = _reader.ReadDistinct(c).ToHashSet();
+                    if (inRelationship.Contains(c.Id))
+                    {
+                        // Kept only to count unmatched keys in the original; everything else is released right away.
+                        distinct[c.Id] = set;
+                    }
+
+                    all.UnionWith(set);
                 }
 
-                all.UnionWith(set);
+                anonymizer.BuildDictionary(domain, all);
             }
 
-            anonymizer.BuildDictionary(domain, all);
-        }
-
-        anonymizer.RememberDictionaries();
-        foreach (var r in Model.Relationships)
-        {
-            if (distinct.TryGetValue(r.FromId, out var from) && distinct.TryGetValue(r.ToId, out var to))
+            anonymizer.RememberDictionaries();
+            foreach (var r in Model.Relationships)
             {
-                facts.OriginalOrphans[r] = from.LongCount(v => !to.Contains(v));
-            }
-        }
-
-        // 2. Stream every table: read → transform → write CSV.
-        var totals = Model.Tables.ToDictionary(t => t.Name, t => _reader.CountRows(t), StringComparer.Ordinal);
-        var grandTotal = Math.Max(1, totals.Values.Sum(n => Math.Min(n, options.FactRowLimit ?? long.MaxValue)));
-        long done = 0;
-        foreach (var t in Model.Tables)
-        {
-            var limit = t.IsFact ? options.FactRowLimit : null;
-            var expected = Math.Min(totals[t.Name], limit ?? long.MaxValue);
-            var noise = anonymizer.NoiseFor(t.Name);
-            var columns = t.Columns.Select(c => plan[c]).ToArray();
-            facts.Metrics.Begin(t, plan, anonymizer.Parameters.DateShiftDays);
-
-            long written = 0;
-            var twinTable = ModelRewriter.Renamed(t, names);
-            using (var writer = new CsvWriter(Path.Combine(twin.DataFolder, ModelRewriter.CsvFileName(twinTable.Name)), twinTable.Columns))
-            {
-                foreach (var row in _reader.ReadRows(t, t.Columns, limit))
+                if (distinct.TryGetValue(r.FromId, out var from) && distinct.TryGetValue(r.ToId, out var to))
                 {
-                    var output = new object?[row.Length];
-                    for (var i = 0; i < row.Length; i++)
-                    {
-                        output[i] = anonymizer.Transform(columns[i], row[i], noise);
-                    }
-
-                    writer.Write(output);
-                    facts.Metrics.Add(t.Name, row, output);
-                    written++;
-                    if (written % 20_000 == 0)
-                    {
-                        cancellation.ThrowIfCancellationRequested();
-                        progress?.Report(new TwinProgress("Writing data", t.Name, 100.0 * (done + written) / grandTotal));
-                    }
+                    facts.OriginalOrphans[r] = from.LongCount(v => !to.Contains(v));
                 }
             }
 
-            done += written;
-            facts.Counts[t.Name] = new TableCount(t.Name, totals[t.Name], written, limit is not null && totals[t.Name] > limit);
-            progress?.Report(new TwinProgress("Writing data", t.Name, 100.0 * done / grandTotal));
-        }
+            // 2. Stream every table: read → transform → write CSV.
+            var totals = Model.Tables.ToDictionary(t => t.Name, t => _reader.CountRows(t), StringComparer.Ordinal);
+            var grandTotal = Math.Max(1, totals.Values.Sum(n => Math.Min(n, options.FactRowLimit ?? long.MaxValue)));
+            long done = 0;
+            foreach (var t in Model.Tables)
+            {
+                var limit = t.IsFact ? options.FactRowLimit : null;
+                var expected = Math.Min(totals[t.Name], limit ?? long.MaxValue);
+                var noise = anonymizer.NoiseFor(t.Name);
+                var columns = t.Columns.Select(c => plan[c]).ToArray();
+                facts.Metrics.Begin(t, plan, anonymizer.Parameters.DateShiftDays);
 
-        // 3. Copy the project, point it at the CSVs, strip sources, rewrite literals.
-        progress?.Report(new TwinProgress("Writing project", null, 100));
-        var literals = new LiteralRewriter(anonymizer.KnownText, names, (table, column) =>
-            plan.Columns.FirstOrDefault(p => p.Column.Name.Equals(column, StringComparison.OrdinalIgnoreCase)
-                && (table is null || p.Column.Table.Equals(table, StringComparison.OrdinalIgnoreCase)))?.Rule);
-        twin.CopyProject(Project);
-        ModelRewriter.Rewrite(database.Model, Model, twin.DataFolder, literals, options.ClearDescriptions || map is not null, names);
-        if (map is not null)
+                long written = 0;
+                var twinTable = ModelRewriter.Renamed(t, names);
+                using (var writer = new CsvWriter(Path.Combine(twin.DataFolder, ModelRewriter.CsvFileName(twinTable.Name)), twinTable.Columns))
+                {
+                    foreach (var row in _reader.ReadRows(t, t.Columns, limit))
+                    {
+                        var output = new object?[row.Length];
+                        for (var i = 0; i < row.Length; i++)
+                        {
+                            output[i] = anonymizer.Transform(columns[i], row[i], noise);
+                        }
+
+                        writer.Write(output);
+                        facts.Metrics.Add(t.Name, row, output);
+                        written++;
+                        if (written % 20_000 == 0)
+                        {
+                            cancellation.ThrowIfCancellationRequested();
+                            progress?.Report(new TwinProgress("Writing data", t.Name, 100.0 * (done + written) / grandTotal));
+                        }
+                    }
+                }
+
+                done += written;
+                facts.Counts[t.Name] = new TableCount(t.Name, totals[t.Name], written, limit is not null && totals[t.Name] > limit);
+                progress?.Report(new TwinProgress("Writing data", t.Name, 100.0 * done / grandTotal));
+            }
+
+            // 3. Copy the project, point it at the CSVs, strip sources, rewrite literals.
+            progress?.Report(new TwinProgress("Writing project", null, 100));
+            var literals = new LiteralRewriter(anonymizer.KnownText, names, (table, column) =>
+                plan.Columns.FirstOrDefault(p => p.Column.Name.Equals(column, StringComparison.OrdinalIgnoreCase)
+                    && (table is null || p.Column.Table.Equals(table, StringComparison.OrdinalIgnoreCase)))?.Rule);
+            twin.CopyProject(Project);
+            ModelRewriter.Rewrite(database.Model, Model, twin.DataFolder, literals, options.ClearDescriptions || map is not null, names);
+            if (map is not null)
+            {
+                ModelRenamer.Apply(database.Model, map);
+                twin.RemoveDiagramLayout();
+            }
+
+            twin.WriteModel(database, Project.IsTmdl);
+            ReportRewriter.Rewrite(twin.ReportFolder, literals, anonymizer.Parameters.DateShiftDays);
+            if (map is not null)
+            {
+                ReportRenamer.Rewrite(twin.ReportFolder, map);
+                File.WriteAllText(twin.CodebookFile, map.ToJson(), Csv.Utf8);
+            }
+
+            // 4. Verify by reading the twin back from disk.
+            progress?.Report(new TwinProgress("Verifying", null, 100));
+            report = Verifier.Verify(twin, Model, anonymizer, facts, literals, names);
+            report.Checks.Add(DaxReferenceCheck.Run(database.Model));
+            report.Checks.Add(ReopenCheck.Run(twin, database.Model.Tables.Count, database.Model.Relationships.Count));
+            if (map is not null)
+            {
+                report.Warnings.Add($"Names were obfuscated. The codebook ({Path.GetFileName(twin.CodebookFile)}) was saved next to the twin folder, not inside it. Never share it together with the twin.");
+            }
+
+            if (options.Seed.Length < SeededHash.RecommendedSeedLength)
+            {
+                // Only the length is mentioned, never the seed itself.
+                report.Warnings.Add($"The seed is short ({options.Seed.Length} characters). Whoever holds the twin could guess it and recompute the pseudonyms of values they suspect are in the data. Use a generated seed (at least {SeededHash.RecommendedSeedLength} characters) for a twin you share.");
+            }
+
+            File.WriteAllText(twin.TrustReportFile, report.ToMarkdown(), Csv.Utf8);
+        }
+        catch
         {
-            ModelRenamer.Apply(database.Model, map);
-            twin.RemoveDiagramLayout();
+            // A half-written twin has no trust report and must not be mistaken for a finished one.
+            twin.Delete();
+            throw;
         }
-
-        twin.WriteModel(database, Project.IsTmdl);
-        ReportRewriter.Rewrite(twin.ReportFolder, literals, anonymizer.Parameters.DateShiftDays);
-        if (map is not null)
-        {
-            ReportRenamer.Rewrite(twin.ReportFolder, map);
-            File.WriteAllText(twin.CodebookFile, map.ToJson(), Csv.Utf8);
-        }
-
-        // 4. Verify by reading the twin back from disk.
-        progress?.Report(new TwinProgress("Verifying", null, 100));
-        var report = Verifier.Verify(twin, Model, anonymizer, facts, literals, names);
-        report.Checks.Add(DaxReferenceCheck.Run(database.Model));
-        report.Checks.Add(ReopenCheck.Run(twin, database.Model.Tables.Count, database.Model.Relationships.Count));
-        if (map is not null)
-        {
-            report.Warnings.Add($"Names were obfuscated. The codebook ({Path.GetFileName(twin.CodebookFile)}) was saved next to the twin folder, not inside it. Never share it together with the twin.");
-        }
-
-        if (options.Seed.Length < SeededHash.RecommendedSeedLength)
-        {
-            // Only the length is mentioned, never the seed itself.
-            report.Warnings.Add($"The seed is short ({options.Seed.Length} characters). Whoever holds the twin could guess it and recompute the pseudonyms of values they suspect are in the data. Use a generated seed (at least {SeededHash.RecommendedSeedLength} characters) for a twin you share.");
-        }
-
-        File.WriteAllText(twin.TrustReportFile, report.ToMarkdown(), Csv.Utf8);
 
         return new TwinResult(twin, report, map is null ? null : twin.CodebookFile);
     }

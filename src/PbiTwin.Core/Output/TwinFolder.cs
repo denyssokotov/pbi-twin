@@ -51,6 +51,27 @@ public sealed class TwinFolder
         }
     }
 
+    /// <summary>Removes what this run wrote (the folder and the codebook), after a failure or a cancel.</summary>
+    public void Delete()
+    {
+        try
+        {
+            if (Directory.Exists(Root) && File.Exists(Path.Combine(Root, Marker)))
+            {
+                Directory.Delete(Root, recursive: true);
+            }
+
+            if (File.Exists(CodebookFile))
+            {
+                File.Delete(CodebookFile);
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // The original error is the one worth reporting.
+        }
+    }
+
     /// <summary>Throws an <see cref="ArgumentException"/> with a readable message if the name cannot be a file name.</summary>
     public static void ValidateName(string name)
     {
