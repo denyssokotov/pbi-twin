@@ -1,0 +1,12 @@
+# Proposes updates as pull requests; nothing is merged automatically.
+# Actions stay pinned to commit SHAs (a test enforces it); NuGet stays inside the package allowlist.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: monthly
