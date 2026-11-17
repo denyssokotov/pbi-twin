@@ -613,8 +613,15 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
         };
         if (dialog.ShowDialog() == true)
         {
-            File.WriteAllText(dialog.FileName, RulesFile.Save(_plan!));
-            RulesStatus = "Rules saved to " + dialog.FileName;
+            try
+            {
+                File.WriteAllText(dialog.FileName, RulesFile.Save(_plan!));
+                RulesStatus = "Rules saved to " + dialog.FileName;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                Error = "Could not save the rules: " + ex.Message;
+            }
         }
     }
 
@@ -640,7 +647,7 @@ public sealed class MainViewModel : ViewModelBase, IDisposable
                 + (result.NotInModel.Count > 0 ? $" {result.NotInModel.Count} columns from the file are no longer in the model." : string.Empty)
                 + (result.Rejected.Count > 0 ? $" Rejected: {string.Join(", ", result.Rejected)}." : string.Empty);
         }
-        catch (Exception ex) when (ex is IOException or InvalidDataException or System.Text.Json.JsonException or ArgumentException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidDataException or System.Text.Json.JsonException or ArgumentException)
         {
             Error = "Could not load the rules: " + ex.Message;
         }

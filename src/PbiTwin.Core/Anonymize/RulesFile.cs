@@ -36,15 +36,26 @@ public static class RulesFile
     {
         ArgumentNullException.ThrowIfNull(plan);
 
-        var doc = JsonSerializer.Deserialize<Document>(json) ?? throw new InvalidDataException("Not a PbiTwin rules file.");
+        Document doc;
+        try
+        {
+            doc = JsonSerializer.Deserialize<Document>(json) ?? throw new InvalidDataException("Not a PbiTwin rules file.");
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidDataException("Not a PbiTwin rules file (invalid JSON): " + ex.Message, ex);
+        }
+
+        // Tolerate hand-edited files: null entries, missing names, a column mapped to itself.
+        var all = (doc.Columns ?? []).Where(e => e is { Column: not null }).ToList();
         var known = plan.Columns.Select(p => p.Column.Id).ToHashSet(StringComparer.Ordinal);
-        var entries = (doc.Columns ?? []).Where(e => known.Contains(e.Column)).ToList();
+        var entries = all.Where(e => known.Contains(e.Column)).ToList();
         var rejected = new List<string>();
 
         // Shared mappings first (a rule belongs to the whole mapping), then the rules.
         foreach (var e in entries)
         {
-            if (e.SameMappingAs is not null && known.Contains(e.SameMappingAs))
+            if (e.SameMappingAs is not null && e.SameMappingAs != e.Column && known.Contains(e.SameMappingAs))
             {
                 plan.Link(e.Column, e.SameMappingAs);
             }
@@ -57,7 +68,7 @@ public static class RulesFile
         var applied = 0;
         foreach (var e in entries)
         {
-            if (Enum.TryParse<Rule>(e.Rule, ignoreCase: true, out var rule)
+            if (e.Rule is not null && Enum.TryParse<Rule>(e.Rule, ignoreCase: true, out var rule)
                 && Rules.Allowed(plan[e.Column].Column.Type).Contains(rule))
             {
                 plan.SetRule(e.Column, rule);
@@ -69,7 +80,7 @@ public static class RulesFile
             }
         }
 
-        var inFile = (doc.Columns ?? []).Select(e => e.Column).ToHashSet(StringComparer.Ordinal);
+        var inFile = all.Select(e => e.Column).ToHashSet(StringComparer.Ordinal);
         return new RulesApplied(
             applied,
             inFile.Where(id => !known.Contains(id)).Order(StringComparer.Ordinal).ToList(),

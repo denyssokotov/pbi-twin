@@ -61,6 +61,38 @@ public class RulesFileTests
     }
 }
 
+public class RulesFileRobustnessTests
+{
+    private static AnonymizationPlan Plan()
+    {
+        var sample = Path.Combine(RepoPaths.Root, "samples", "ContosoPII");
+        return new TwinSession(PbipProject.Open(sample), new CsvTableReader(Path.Combine(sample, "data"), c => c.SourceColumn)).Scan();
+    }
+
+    [Theory]
+    [InlineData("not json at all")]
+    [InlineData("{ \"Columns\": [ ")]
+    [InlineData("")]
+    public void Broken_files_give_a_clear_error(string json) =>
+        Assert.Throws<InvalidDataException>(() => RulesFile.Apply(Plan(), json));
+
+    [Fact]
+    public void Hand_edited_files_with_nulls_and_self_links_do_not_crash()
+    {
+        var plan = Plan();
+        const string json = """
+            { "Columns": [ null, { "Rule": "Keep" },
+              { "Column": "DimProduct[Brand]", "Rule": null, "SameMappingAs": "DimProduct[Brand]" },
+              { "Column": "DimCustomer[Segment]", "Rule": "Keep", "SameMappingAs": null } ] }
+            """;
+
+        var result = RulesFile.Apply(plan, json);
+
+        Assert.Equal(Rule.Keep, plan["DimCustomer[Segment]"].Rule);
+        Assert.Equal(["DimProduct[Brand]: "], result.Rejected);
+    }
+}
+
 public class FileNameTests
 {
     [Theory]

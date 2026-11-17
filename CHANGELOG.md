@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.6
+
+- A broken or hand-edited rules file (invalid JSON, empty entries, a column mapped to itself) gives a clear message instead of a crash.
+- Saving or loading rules in a folder you cannot write to reports the problem instead of closing the app.
+
 ## 0.1.5
 
 Security
