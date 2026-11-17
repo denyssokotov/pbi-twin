@@ -34,6 +34,8 @@ public sealed class RandomModelTests : IDisposable
         }
     }
 
+    private string _lastLiteral = string.Empty;
+
     private TwinResult Build(int seed, RenameMode rename)
     {
         var rng = new Random(seed);
@@ -79,6 +81,27 @@ public sealed class RandomModelTests : IDisposable
         });
         fact.Measures.Add(new Measure { Name = "Total " + amount, Expression = $"SUM('{fact.Name.Replace("'", "''", StringComparison.Ordinal)}'[{amount.Replace("]", "]]", StringComparison.Ordinal)}])" });
 
+        // A measure that filters by a literal that is an original value of the text column.
+        var literal = Words[rng.Next(Words.Length)];
+        _lastLiteral = literal;
+        fact.Measures.Add(new Measure
+        {
+            Name = "Filtered " + amount,
+            Expression = $"CALCULATE([Total {amount.Replace("]", "]]", StringComparison.Ordinal)}], '{dim.Name.Replace("'", "''", StringComparison.Ordinal)}'[{dimText.Replace("]", "]]", StringComparison.Ordinal)}] = \"{literal.Replace("\"", "\"\"", StringComparison.Ordinal)}\")",
+        });
+
+        // An RLS role and a calculated column that mention original values too.
+        var dimRef = $"'{dim.Name.Replace("'", "''", StringComparison.Ordinal)}'[{dimText.Replace("]", "]]", StringComparison.Ordinal)}]";
+        var role = new ModelRole { Name = "Role " + seed, ModelPermission = ModelPermission.Read };
+        role.TablePermissions.Add(new TablePermission { Table = dim, FilterExpression = $"{dimRef} = \"{Words[rng.Next(Words.Length)].Replace("\"", "\"\"", StringComparison.Ordinal)}\"" });
+        db.Model.Roles.Add(role);
+        dim.Columns.Add(new CalculatedColumn
+        {
+            Name = "Flag " + seed,
+            DataType = DataType.String,
+            Expression = $"IF({dimRef} = \"{Words[rng.Next(Words.Length)].Replace("\"", "\"\"", StringComparison.Ordinal)}\", \"{Words[rng.Next(Words.Length)].Replace("\"", "\"\"", StringComparison.Ordinal)}\", {dimRef})",
+        });
+
         var modelFolder = Path.Combine(project, "M.SemanticModel");
         TmdlSerializer.SerializeDatabaseToFolder(db, Path.Combine(modelFolder, "definition"));
         File.WriteAllText(Path.Combine(modelFolder, "definition.pbism"), """{ "version": "4.0" }""");
@@ -122,13 +145,14 @@ public sealed class RandomModelTests : IDisposable
     [InlineData(RenameMode.Neutral)]
     public void Random_models_produce_twins_where_every_check_passes(RenameMode rename)
     {
-        for (var seed = 1; seed <= 12; seed++)
+        for (var seed = 1; seed <= 40; seed++)
         {
             var result = Build(seed, rename);
-            Assert.Contains(result.Report.Checks, c => c.Name == "Leak scan" && c.Status == CheckStatus.Pass);
-            Assert.Contains(result.Report.Checks, c => c.Name == "Twin opens" && c.Status == CheckStatus.Pass);
             var failed = result.Report.Checks.Where(c => c.Status == CheckStatus.Fail).Select(c => c.Name + ": " + c.Detail).ToList();
-            Assert.True(failed.Count == 0, $"seed {seed}, {rename}: {string.Join("; ", failed)}\n{string.Join("\n", result.Report.Leaks.Take(5).Select(l => l.File + " " + l.Context))}");
+            Assert.True(failed.Count == 0, $"seed {seed}, {rename}, literal [{_lastLiteral}] rules [{string.Join("; ", result.Report.Columns.Select(c => c.Column + "=" + c.Rule))}]: {string.Join("; ", failed)}\n{string.Join("\n", result.Report.Leaks.Take(5).Select(l => l.File + " | " + l.Columns + " | " + l.Context))}");
+            Assert.Contains(result.Report.Checks, c => c.Name == "Leak scan" && c.Status == CheckStatus.Pass);
+            Assert.Contains(result.Report.Checks, c => c.Name == "DAX references" && c.Status == CheckStatus.Pass);
+            Assert.Contains(result.Report.Checks, c => c.Name == "Twin opens" && c.Status == CheckStatus.Pass);
         }
     }
 

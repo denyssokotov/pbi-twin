@@ -201,6 +201,16 @@ public class RewriterTests
     }
 
     [Fact]
+    public void A_value_another_column_holds_is_replaced_when_the_filtered_column_is_rewritten()
+    {
+        Rule? RuleOf(string? table, string column) => column switch { "Notes" => Rule.Keep, "Label" => Rule.Label, _ => null };
+        var lit = new LiteralRewriter(Known(), ruleOf: RuleOf);
+
+        Assert.Equal("Kyiv", lit.MapLiteral("Kyiv", null, "Notes", "filter"));
+        Assert.NotEqual("Kyiv", lit.MapLiteral("Kyiv", null, "Label", "filter"));
+    }
+
+    [Fact]
     public void Leak_scan_ignores_base64_images()
     {
         var dir = Directory.CreateTempSubdirectory().FullName;

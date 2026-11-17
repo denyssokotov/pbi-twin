@@ -138,7 +138,10 @@ public sealed partial class LiteralRewriter
 
         // A filter on a column that PbiTwin does not change (rule Keep, number, ...) keeps its literal, even if
         // another column happens to hold the same word.
-        if (column is not null && _known.TryGetValue(value, out var owners) && !OwnedBy(owners, table, column))
+        // A column that is rewritten (a label, a city, ...) is different: a value it does not hold still is an original
+        // value of another column, so it is replaced and the filter stays as empty as it was.
+        if (column is not null && _known.TryGetValue(value, out var owners) && !OwnedBy(owners, table, column)
+            && !(_ruleOf?.Invoke(table, column) is { } rule && Rules.ReplacesText(rule)))
         {
             return value;
         }
