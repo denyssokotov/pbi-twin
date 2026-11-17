@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.10
+
+- Fixed: when a CSV cell did not parse as its column's type, the error message quoted the cell (the .NET message contains the value), so a data value could end up on screen, in a screenshot or in a pasted error. The error now names the file, line and column and says the value is not shown.
+- Random-model tests now cover booleans, doubles, whole numbers with blanks, dates with and without a time, text keys, report visuals (a filter and a textbox that mention values), and names with emoji, Hebrew, combining accents and non-breaking spaces. Blanks and true/false values are checked to stay as they were.
+
 ## 0.1.9
 
 - The command line rejects unknown options (a typo such as `--rennme` used to be ignored and silently changed what the run did), bad numbers (`--rows 0`, `--noise -5`, `--port abc`), `--rename` values that do not exist, `--seed` without a value, and `--port` together with `--csv`. The output folder and twin name are checked before any data is read.

@@ -39,7 +39,15 @@ public sealed class CsvTableReader(string folder, Func<ColumnInfo, string>? head
             var row = new object?[index.Length];
             for (var i = 0; i < index.Length; i++)
             {
-                row[i] = Csv.Parse(index[i] < r.Length ? r[index[i]] : null, columns[i].Type);
+                try
+                {
+                    row[i] = Csv.Parse(index[i] < r.Length ? r[index[i]] : null, columns[i].Type);
+                }
+                catch (Exception ex) when (ex is FormatException or OverflowException)
+                {
+                    // The framework's message quotes the value; an error must never carry data, so it is left out (and not chained).
+                    throw new InvalidDataException($"{table.Name}.csv, line {n + 2}, column '{_header(columns[i])}': the value is not a valid {columns[i].Type}. The value is not shown.");
+                }
             }
 
             n++;
