@@ -30,6 +30,36 @@ public sealed class SeedTests : IDisposable
         Assert.DoesNotContain(seed, AllText(Path.GetDirectoryName(result.Folder.Root)!).Replace(AllText(result.Folder.Root), string.Empty, StringComparison.Ordinal), StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(RenameMode.None)]
+    [InlineData(RenameMode.Semantic)]
+    public void The_trust_report_holds_no_original_value(RenameMode mode)
+    {
+        var result = Run("REPORT-NO-VALUES-1", "report-" + mode, mode);
+        var report = File.ReadAllText(result.Folder.TrustReportFile);
+
+        // Every distinct text value of the original data (4+ characters) that is not also a table or column name.
+        var names = new HashSet<string>(Model(Sample), StringComparer.OrdinalIgnoreCase);
+        var values = Directory.EnumerateFiles(Path.Combine(Sample, "data"), "*.csv")
+            .SelectMany(f => { using var r = new StreamReader(f); return PbiTwin.Core.Text.Csv.ReadRecords(r).Skip(1).SelectMany(x => x).ToList(); })
+            .Where(v => v is { Length: >= 4 } && !double.TryParse(v, out _) && !DateTime.TryParse(v, out _))
+            .Select(v => v!)
+            .Distinct()
+            .Where(v => !names.Contains(v))
+            .ToList();
+
+        Assert.True(values.Count > 1000);
+        var found = new PbiTwin.Core.Text.TextMatcher(values).Find(report).Select(m => m.Pattern).Distinct().Count();
+        Assert.True(found == 0, $"{found} original value(s) appear in the trust report");
+    }
+
+    private static IEnumerable<string> Model(string sample)
+    {
+        var model = new TwinSession(PbipProject.Open(sample), new CsvTableReader(Path.Combine(sample, "data"), c => c.SourceColumn)).Model;
+        return model.Tables.SelectMany(t => t.Columns.Select(c => c.Name).Append(t.Name))
+            .Concat(model.Tables.SelectMany(t => t.Columns.Select(c => t.Name + "[" + c.Name + "]")));
+    }
+
     [Fact]
     public void The_same_seed_gives_the_same_twin_and_another_seed_a_different_one()
     {

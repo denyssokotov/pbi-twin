@@ -193,6 +193,26 @@ public sealed class SourceFormatTests : IDisposable
     }
 
     [Fact]
+    public void A_link_into_the_source_project_does_not_hide_it()
+    {
+        var src = Path.Combine(_root, "linksource");
+        Directory.CreateDirectory(src);
+        var link = Path.Combine(_root, "innocent-looking");
+        try
+        {
+            Directory.CreateSymbolicLink(link, src);
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or IOException or PlatformNotSupportedException)
+        {
+            return; // Creating links may need a privilege (Windows); nothing to test then.
+        }
+
+        Assert.Throws<InvalidOperationException>(() => PbiTwin.Core.Output.TwinFolder.EnsureSeparate(Path.Combine(link, "Twin"), src));
+        Assert.Throws<InvalidOperationException>(() => PbiTwin.Core.Output.TwinFolder.EnsureSeparate(link, src));
+        PbiTwin.Core.Output.TwinFolder.EnsureSeparate(Path.Combine(_root, "elsewhere"), src);
+    }
+
+    [Fact]
     public void A_sibling_folder_with_a_similar_name_is_fine() =>
         PbiTwin.Core.Output.TwinFolder.EnsureSeparate(Path.Combine(_root, "source_Twin"), Path.Combine(_root, "source"));
 

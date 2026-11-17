@@ -65,12 +65,36 @@ public sealed class TwinFolder
     /// <summary>The output must not be, contain or sit inside the input project: it is deleted and rewritten on every run.</summary>
     public static void EnsureSeparate(string outputRoot, string sourceRoot)
     {
-        var output = Path.TrimEndingDirectorySeparator(Path.GetFullPath(outputRoot)) + Path.DirectorySeparatorChar;
-        var source = Path.TrimEndingDirectorySeparator(Path.GetFullPath(sourceRoot)) + Path.DirectorySeparatorChar;
+        var output = Path.TrimEndingDirectorySeparator(Resolve(outputRoot)) + Path.DirectorySeparatorChar;
+        var source = Path.TrimEndingDirectorySeparator(Resolve(sourceRoot)) + Path.DirectorySeparatorChar;
         if (output.StartsWith(source, StringComparison.OrdinalIgnoreCase) || source.StartsWith(output, StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException("The output folder must be outside the source project folder (and must not contain it). Choose another output folder.");
         }
+    }
+
+    /// <summary>The full path with every existing symbolic link or junction followed, so a link into the project cannot hide it.</summary>
+    internal static string Resolve(string path)
+    {
+        var full = Path.GetFullPath(path);
+        var root = Path.GetPathRoot(full)!;
+        var current = root;
+        var parts = full[root.Length..].Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar], StringSplitOptions.RemoveEmptyEntries);
+        for (var i = 0; i < parts.Length; i++)
+        {
+            current = Path.Combine(current, parts[i]);
+            FileSystemInfo info = new DirectoryInfo(current);
+            if (info.Exists && info.LinkTarget is not null)
+            {
+                var target = info.ResolveLinkTarget(returnFinalTarget: true)?.FullName;
+                if (target is not null)
+                {
+                    current = target;
+                }
+            }
+        }
+
+        return current;
     }
 
     /// <summary>

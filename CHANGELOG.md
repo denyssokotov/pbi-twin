@@ -3,6 +3,8 @@
 ## 0.1.10
 
 - Fixed: when a CSV cell did not parse as its column's type, the error message quoted the cell (the .NET message contains the value), so a data value could end up on screen, in a screenshot or in a pasted error. The error now names the file, line and column and says the value is not shown.
+- The "output must not be inside the source project" check now follows symbolic links and junctions, so a link into the project cannot hide it.
+- A test proves that the trust report itself holds no original value (it is excluded from the leak scan, so it needed its own check).
 - Random-model tests now cover booleans, doubles, whole numbers with blanks, dates with and without a time, text keys, report visuals (a filter and a textbox that mention values), and names with emoji, Hebrew, combining accents and non-breaking spaces. Blanks and true/false values are checked to stay as they were.
 
 ## 0.1.9
