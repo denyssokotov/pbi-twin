@@ -120,7 +120,7 @@ With `--csv <folder>` instead of `--port` it reads the original data from CSV fi
 Requires the .NET 8 SDK.
 
 ```
-git clone https://github.com/denchik2013/pbi-twin
+git clone https://github.com/denyssokotov/pbi-twin
 cd pbi-twin
 dotnet test
 dotnet run --project src/PbiTwin.App
