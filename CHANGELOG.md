@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.11
+
+- Build tooling only, no change to the program: GitHub Actions `checkout` 7.0.1 and `setup-dotnet` 6.1.0 (pinned to commit SHAs that were checked against the official release tags). `checkout` 7 also blocks fork pull requests in `pull_request_target` workflows.
+
 ## 0.1.10
 
 - Fixed: when a CSV cell did not parse as its column's type, the error message quoted the cell (the .NET message contains the value), so a data value could end up on screen, in a screenshot or in a pasted error. The error now names the file, line and column and says the value is not shown.
